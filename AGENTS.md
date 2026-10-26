@@ -1,0 +1,72 @@
+# AGENTS.md — Rules for every coding agent
+
+Read this whole file before you do anything. These rules are not optional.
+
+## What this project is
+
+An online store where **one seller** sells **premium WordPress themes**.
+Customers pay once per theme and get lifetime updates (by download).
+
+- Product details: `docs/00-product.md`
+- Every locked decision: `docs/01-decisions.md`
+- Index of all planning docs: `docs/README.md`
+
+## The most important rule: you do not make decisions
+
+All product and technical decisions are already written in `docs/`.
+Your job is to **implement exactly what the task file says**.
+
+If the task or the docs do not tell you something you need:
+
+1. **Stop.** Do not guess. Do not pick "a reasonable default".
+2. Add an entry to `docs/QUESTIONS.md` (format is inside that file).
+3. Finish only the parts of the task that are not blocked.
+4. Mention the question in your Pull Request description.
+
+Examples of things you must NOT decide yourself:
+
+- Adding, removing or upgrading any npm package.
+- Adding a field to a database model, or renaming one.
+- Creating a new page, route, API endpoint or environment variable that the task does not list.
+- Changing text the customer sees (labels, error messages, emails) from what the spec says.
+- Changing folder structure or naming conventions.
+
+## How to work on a task
+
+1. Tasks live in `tasks/T-XXX-name.md`. Do **one task at a time**.
+2. Check the task's `Depends on` list. If a dependency is not merged into `main`, stop.
+3. Create a branch from the latest `main`: `task/T-XXX-short-name`
+   (example: `task/T-005-theme-model`).
+4. Touch **only** the files listed in the task's `Files` section.
+   If you believe another file must change, write it in `docs/QUESTIONS.md` instead.
+5. Follow the task's `Do NOT` list exactly.
+6. Run every command in the task's `Verify` section. All must pass.
+7. Commit with the message format: `T-XXX: short description`
+   (example: `T-005: add Theme mongoose model`).
+8. Open a Pull Request:
+   - Title: `T-XXX: <task title>`
+   - Body: what you did, the `Verify` output, any questions, and `Closes #<issue number>`.
+
+## When something fails
+
+- If a `Verify` command fails, fix your code. Never delete, skip or weaken a test to make it pass.
+- Never disable lint rules or TypeScript checks (`// @ts-ignore`, `eslint-disable`, `any`) to make errors go away.
+- If you cannot fix it after a real attempt, stop and explain the failure in the PR description.
+
+## Copy existing patterns
+
+The first tasks build working example code (one complete feature from database to page).
+When you write something new, **find the closest existing example in the codebase and copy its structure**:
+same file layout, same naming, same error handling, same validation style.
+Do not invent a new pattern when one already exists.
+
+## Coding conventions
+
+Full conventions are in `docs/02-architecture.md` (written before coding starts).
+Until then, the short version:
+
+- TypeScript in strict mode. No `any`.
+- Validate every input from the outside world (forms, URL params, webhooks) with `zod`.
+- Money is always an **integer number of cents** (`1900` = $19.00). Never use floats for money.
+- Never put secrets in code. Read them from environment variables listed in `.env.example`.
+- Never log passwords, tokens, API keys or full webhook bodies.

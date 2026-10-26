@@ -1,0 +1,96 @@
+# 01 — Decision log
+
+Every decision about the product and the tech is written here with a number.
+Agents must follow these decisions. Only the owner can change one.
+
+**Status meanings**
+
+- **LOCKED**: the owner decided. Do not question it.
+- **DEFAULT**: the planner chose it and the owner has not objected yet. Treat it as locked
+  unless the owner changes it.
+- **OPEN**: not decided yet. Nobody may build anything that depends on it.
+
+When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a new one.
+
+---
+
+## Business
+
+| ID | Decision | Status |
+|---|---|---|
+| D-001 | Single seller (the owner). No marketplace, no other sellers. | LOCKED |
+| D-002 | Only paid themes. No free themes. | LOCKED |
+| D-003 | One-time purchase per theme. No subscriptions, no all-access plan. | LOCKED |
+| D-004 | Buying a theme gives **lifetime updates**: the buyer can download every current and future version. | LOCKED |
+| D-005 | Updates are delivered by **email notification + manual download**. No automatic updates in WordPress, no license keys in the MVP. | LOCKED |
+| D-006 | One license type: "use on unlimited sites you own or build for clients". The database still stores a `licenseType` field (only value: `"standard"`) so tiers can be added later. | DEFAULT |
+| D-007 | No shopping cart. One checkout buys exactly one theme. | DEFAULT |
+| D-008 | Currency: USD only. Prices are stored as integer cents. | DEFAULT |
+| D-009 | Coupons are included in the MVP (percent or fixed amount, all or selected themes, optional expiry and usage limit). | LOCKED |
+| D-010 | Every theme version has a changelog. It is shown on the theme page and used in update emails. | LOCKED |
+| D-011 | A refund removes the buyer's access to that theme automatically. | DEFAULT |
+| D-012 | Admin can grant a theme to a customer manually (no payment). | DEFAULT |
+| D-013 | English only. Left-to-right only. | LOCKED |
+
+## Accounts
+
+| ID | Decision | Status |
+|---|---|---|
+| D-020 | Auth library: **Better Auth**. | LOCKED |
+| D-021 | Login methods: **email + password** and **Google**. No magic link. | LOCKED |
+| D-022 | Customers must have an account to buy. No guest checkout. | DEFAULT |
+| D-023 | Email must be verified before buying. (Google accounts count as verified.) | DEFAULT |
+| D-024 | Roles: `customer` and `admin` only. Admin accounts are the emails listed in the `ADMIN_EMAILS` environment variable. | DEFAULT |
+
+## Payments
+
+| ID | Decision | Status |
+|---|---|---|
+| D-030 | Payment provider: **Polar**. It may be replaced later. | LOCKED |
+| D-031 | **MongoDB is the source of truth** for themes, orders, ownership and coupons. Polar only takes the payment and tells us about it by webhook. | LOCKED |
+| D-032 | All Polar code lives behind a `PaymentProvider` interface. No other part of the code imports the Polar SDK directly. This makes replacing Polar a one-folder change. | DEFAULT |
+| D-033 | Themes and coupons are created only in **our** admin panel. Our server creates or updates the matching Polar product and discount through the Polar API and stores the Polar IDs. Nobody edits products in the Polar dashboard by hand. | DEFAULT |
+| D-034 | Ownership is granted **only by the webhook** (or by admin grant), never by the checkout success page. | DEFAULT |
+| D-035 | Webhooks are verified by signature and handled idempotently (the same event processed twice changes nothing). | DEFAULT |
+| D-036 | We do not use Polar's built-in "benefits" (file downloads, license keys). We deliver files ourselves. | DEFAULT |
+
+## Tech stack
+
+| ID | Decision | Status |
+|---|---|---|
+| D-040 | Framework: **Next.js** (App Router) with TypeScript in strict mode. The exact version is pinned in T-001. | LOCKED |
+| D-041 | Database: **MongoDB** with **Mongoose**. | LOCKED |
+| D-042 | Styling: **Tailwind CSS only**. No component library (no shadcn, MUI, etc.). We build our own small set of UI components. | LOCKED |
+| D-043 | Input validation: **zod**. | DEFAULT |
+| D-044 | Package manager: **pnpm**. | DEFAULT |
+| D-045 | Tests: **Vitest** for unit tests. **Playwright** for a few end-to-end tests of the main flows. | DEFAULT |
+| D-046 | Lint/format: ESLint + Prettier. | DEFAULT |
+| D-047 | Email sending: **Resend**. Bulk update emails are sent in batches. | DEFAULT |
+| D-048 | Hosting: the owner's existing **DigitalOcean VPS**. Details (Docker or not, reverse proxy, process manager) are decided later in a deployment doc. | LOCKED (details OPEN) |
+| D-049 | Theme `.zip` files are stored in **private** object storage and downloaded through short-lived signed URLs. They are never public and never served from the Next.js `public/` folder. | DEFAULT |
+
+## Demos
+
+| ID | Decision | Status |
+|---|---|---|
+| D-060 | Theme demos are real WordPress sites, run **outside this codebase**. Recommended setup: one WordPress Multisite on a separate droplet, one sub-site per theme. | DEFAULT |
+| D-061 | The store only stores a `demoUrl` per theme and shows it on a preview page (`/themes/[slug]/preview`) with a top bar and the demo in an iframe. | DEFAULT |
+
+## Agent workflow
+
+| ID | Decision | Status |
+|---|---|---|
+| D-080 | Implementing agent: **OpenCode** with **DeepSeek**. It follows `AGENTS.md`. | LOCKED |
+| D-081 | The planner (strong model) writes all docs and task files, and implements T-001 to T-003 as reference code. | DEFAULT |
+| D-082 | One task = one branch = one Pull Request = one GitHub Issue. | DEFAULT |
+| D-083 | The task file in `/tasks` is the full spec. The GitHub Issue only tracks status and links to the task file. | DEFAULT |
+
+---
+
+## OPEN — waiting for the owner
+
+| ID | Question | Planner's recommendation |
+|---|---|---|
+| O-001 | Where do theme zips and screenshots live? | **DigitalOcean Spaces** (same vendor as your VPS, S3-compatible, about $5/month). Alternative: Cloudflare R2 (no download fees). |
+| O-002 | Where does MongoDB run? | **MongoDB Atlas** (managed backups, free tier to start). Alternative: self-hosted on the VPS (cheaper, but you handle backups). |
+| O-003 | Store domain name and demo domain name? | Store: `yourbrand.com`. Demos: `demo.yourbrand.com`. |
