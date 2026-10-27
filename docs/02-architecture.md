@@ -3,6 +3,11 @@
 This document says **where code goes** and **how code is written**.
 Every task follows it. If something here conflicts with a task file, stop and ask in `docs/QUESTIONS.md`.
 
+The two goals behind every rule here:
+
+1. **Keep it simple (KISS).** Code a beginner can read beats clever code.
+2. **One way to do each thing.** When there is a rule, there are no exceptions, so you never have to choose.
+
 ---
 
 ## 1. Stack and versions
@@ -26,7 +31,6 @@ The major versions below were current when this plan was written (October 2026).
 | Email sending | `resend` | 6 |
 | Email templates | `@react-email/components` | 1 |
 | Markdown display | `react-markdown` | 10 |
-| Server-only guard | `server-only` | — |
 | Unit tests | `vitest` | 5 |
 | DB for tests | `mongodb-memory-server` | 11 |
 | E2E tests | `@playwright/test` | 1 |
@@ -38,138 +42,301 @@ Use what the platform gives you (`fetch`, `Intl.NumberFormat`, `Intl.DateTimeFor
 
 ---
 
-## 2. Folder structure
+## 2. Folder structure (feature-based)
+
+The code is split by **feature** (D-084). Everything about one feature — database model, queries, business rules,
+form handling, validation, types and UI — lives in **one folder**. Code used by many features lives in `shared/`.
 
 ```
 /
 ├─ AGENTS.md, CLAUDE.md
-├─ docs/                      planning docs
-├─ tasks/                     task files
-├─ .env.example               every env variable, with comments, no real values
-├─ docker-compose.yml         local MongoDB (replica set) + MinIO (local S3)
+├─ docs/                       planning docs
+├─ tasks/                      task files
+├─ .env.example                every env variable, with comments, no real values
+├─ docker-compose.yml          local MongoDB (replica set) + MinIO (local S3)
 ├─ next.config.ts
-├─ e2e/                       Playwright tests
+├─ e2e/                        Playwright tests
 └─ src/
-   ├─ app/                    routes only (pages, layouts, route handlers). Thin. No business logic.
-   │  ├─ (store)/             public store pages, with store header + footer
-   │  ├─ (auth)/              login, register, password reset, verify email
-   │  ├─ (preview)/           /themes/[slug]/preview — full-screen, no store header
-   │  ├─ account/             customer area (login required)
-   │  ├─ admin/               admin area (admin required)
-   │  ├─ checkout/            checkout success page
-   │  └─ api/                 route handlers: auth, webhooks, downloads, cron
-   ├─ actions/                server actions ("use server"), one file per area
-   │  ├─ admin/               e.g. themes.ts, versions.ts, coupons.ts
-   │  └─ account/             e.g. settings.ts
-   ├─ server/                 server-only code. Every file starts with: import "server-only";
-   │  ├─ env.ts               reads + validates ALL environment variables
-   │  ├─ db/connect.ts        Mongoose connection (cached)
-   │  ├─ models/              one file per model: Theme.ts, ThemeVersion.ts, ...
-   │  ├─ services/            business logic, one file per area: themes.ts, orders.ts, ...
-   │  ├─ auth/                Better Auth instance + session helpers
-   │  ├─ payments/            PaymentProvider interface + Polar implementation
-   │  ├─ storage/             S3 client + signed URL helpers
-   │  ├─ email/               send function + templates
-   │  └─ errors.ts            AppError class
-   ├─ components/
-   │  ├─ ui/                  generic building blocks: Button, Input, Textarea, Select, Badge, Card, Alert, ...
-   │  ├─ store/               store-specific: ThemeCard, ThemeGallery, PriceTag, ...
-   │  ├─ account/
-   │  └─ admin/
-   ├─ schemas/                zod schemas for inputs (shared by forms and server actions)
-   ├─ types/                  DTO types (plain data passed from server to pages/components)
-   ├─ lib/                    small pure helpers, safe on client and server: money.ts, dates.ts, semver.ts, slug.ts, constants.ts
-   └─ test/                   test helpers only (e.g. db.ts for the in-memory MongoDB)
+   ├─ app/                     Next.js routes ONLY (pages, layouts, api route handlers). Very thin.
+   ├─ features/
+   │  ├─ auth/                 login, register, sessions (Better Auth)
+   │  ├─ users/                account settings, admin customer list
+   │  ├─ categories/
+   │  ├─ themes/
+   │  ├─ versions/             theme zips, changelogs
+   │  ├─ ownerships/           who can download which theme, admin grants
+   │  ├─ orders/               paid orders, admin dashboard numbers
+   │  ├─ coupons/
+   │  ├─ payments/             PaymentProvider interface, Polar, checkout, webhooks
+   │  ├─ downloads/            download links, download logs
+   │  └─ emails/               sending emails, email templates, update-email sender
+   └─ shared/
+      ├─ ui/                   Button, Input, Textarea, Select, Badge, Card, Alert, ... (used by all features)
+      ├─ lib/                  small pure helpers: money.ts, dates.ts, semver.ts, slug.ts
+      ├─ db/                   connect.ts, ids.ts, transaction.ts
+      ├─ storage/              s3.ts (the only place that uses @aws-sdk)
+      ├─ config/env.ts         reads + validates ALL environment variables
+      ├─ errors.ts             AppError
+      ├─ types/                ActionResult and other shared types
+      └─ test/                 test helpers only (db.ts for the in-memory MongoDB)
 ```
 
-### Rules for folders
+### 2.1 Files inside a feature
 
-1. **`src/app`** only wires things together: read params, call a service or action, render components.
-   No database calls, no Mongoose imports, no business rules in `app/`.
-2. **`src/server`** is the only place that may import `mongoose`, `better-auth` server APIs, `@polar-sh/sdk`,
-   `@aws-sdk/*`, `resend`, or read `process.env`.
-3. **Only `src/server/payments/polar/`** may import `@polar-sh/sdk` (D-032).
-4. **Only `src/server/storage/`** may import `@aws-sdk/*` (D-051).
-5. **Only `src/server/env.ts`** may read `process.env`. Everyone else imports `env` from it.
-   (Exception: `next.config.ts`, which runs before the app.)
-6. **`src/lib`, `src/schemas`, `src/types`** must not import anything from `src/server`. They run in the browser too.
-7. Enum value lists (`THEME_STATUSES`, `CHANGE_TYPES`, …) live in `src/lib/constants.ts` so both models and client
-   components can use them.
+Example for `themes`. The file name always starts with the **singular** feature name.
+
+```
+features/themes/
+├─ theme.model.ts            Mongoose schema + model. Shows exactly what is stored in the database.
+├─ theme.repository.ts       ALL database queries for this feature. The only file that uses the model.
+├─ theme.service.ts          Business rules. Calls the repository. Called by actions, pages and other features.
+├─ theme.mapper.ts           Converts database records into DTOs for pages.
+├─ theme.actions.ts          Server actions ("use server"). Thin: auth → validate → service → revalidate.
+├─ theme.schemas.ts          zod schemas for inputs (used by forms and actions).
+├─ theme.types.ts            DTO types and other TypeScript types.
+├─ theme.constants.ts        Enum lists and limits (THEME_STATUSES, MAX_THEME_IMAGES, ...).
+├─ theme.service.test.ts     Tests (next to the file they test).
+└─ components/
+   ├─ ThemeCard.tsx
+   ├─ ThemeGallery.tsx
+   └─ admin/
+      └─ ThemeForm.tsx        Admin screens live inside the feature (no separate admin feature).
+```
+
+A feature only has the files it needs. For example, `payments` has no model, `categories` has no `mapper` if the
+task does not need one. **The task file always lists exactly which files to create.**
+
+Some features have extra files with a clear job. They are listed in the task that creates them, for example:
+`auth/auth.ts` (Better Auth instance), `auth/session.ts` (session helpers),
+`payments/polar/polar.provider.ts`, `payments/payment.webhook.ts`, `emails/templates/UpdateEmail.tsx`.
+
+### 2.2 The layers
+
+Every request goes through the same layers, always in this order. **No layer is ever skipped** (D-086),
+even when a function only passes data through.
+
+```
+app/ page.tsx or route.ts         (Next.js)
+        ↓
+<feature>.actions.ts              (Next.js server actions — only for forms)
+        ↓
+<feature>.service.ts              (plain TypeScript — business rules)
+        ↓
+<feature>.repository.ts           (plain TypeScript — database queries)
+        ↓
+<feature>.model.ts                (Mongoose schema)
+```
+
+### 2.3 What each file may import
+
+| File | May import | Must NOT import |
+|---|---|---|
+| `app/**/page.tsx`, `layout.tsx` | services (to read data), components, `auth/session.ts`, `next/*` | repositories, models, `mongoose` |
+| `app/api/**/route.ts` | one handler/service function, `next/*` | repositories, models, `mongoose` |
+| `*.actions.ts` | own service, own schemas, `auth/session.ts`, `next/cache`, `next/navigation`, `shared/*` | repositories, models |
+| `*.service.ts` | own repository, own mapper, **other features' services**, `shared/*` | **anything from `next/*`**, `auth/session.ts`, other features' repositories or models |
+| `*.repository.ts` | own model, `shared/db/*`, `mongoose` types | `next/*`, services, other features' models |
+| `*.model.ts` | `mongoose`, own constants | anything else |
+| `*.mapper.ts`, `*.schemas.ts`, `*.types.ts`, `*.constants.ts` | `zod`, own constants/types, `shared/lib` | services, repositories, models, `next/*` |
+| `components/**` | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/lib` | services, repositories, models |
+| `shared/**` | other `shared/*` | anything in `features/` |
+
+The three most important rules:
+
+1. **Services and repositories never import from Next.js** (D-085). They are plain TypeScript, so they can move to
+   another backend (e.g. Express) later without changes. Things like `redirect`, `revalidatePath`, `cookies`,
+   `headers` are only used in actions, pages and route handlers.
+2. **Features talk to each other only through services** (D-087). `orders` may call
+   `ownershipService.grantFromOrder(...)`. It may never import `ownership.repository.ts` or `ownership.model.ts`.
+3. **Components never fetch data.** The page gets the data from a service and passes it down as props.
+   Components only display data and call actions.
+
+Other folder rules:
+
+- `app/` only wires things together: read params, call a service, render components. No business rules in `app/`.
+- **Only `features/payments/polar/`** may import `@polar-sh/sdk` (D-032).
+- **Only `shared/storage/`** may import `@aws-sdk/*` (D-051).
+- **Only `shared/config/env.ts`** may read `process.env`. Everyone else imports `env` from it.
+  (Exception: `next.config.ts`, which runs before the app.)
+- **No `index.ts` barrel files** (D-088). Always import from the real file.
+- Always import with the `@/` alias (`@/features/themes/theme.service`), never `../../`.
+
+### 2.4 Services receive the user as a parameter
+
+Because services cannot use Next.js, they cannot read cookies or the session. The action or page gets the current
+user and passes the id in:
+
+```ts
+// theme.actions.ts  (Next.js side)
+const user = await requireAdmin();
+await createTheme(parsed.data, user.id);
+
+// theme.service.ts  (plain TypeScript)
+export async function createTheme(input: CreateThemeInput, adminUserId: string): Promise<ThemeAdminDTO> { ... }
+```
 
 ---
 
-## 3. Naming
+## 3. Coding rules (KISS)
+
+These apply to every file (D-089).
+
+1. **Small functions.** About 40 lines maximum. If longer, split it into well-named helper functions in the same file.
+2. **Small files.** About 250 lines maximum. If longer, split by responsibility (the task will say how).
+3. **Early return instead of nesting.** Maximum 2 levels of `if`/loop nesting. No nested ternaries (`a ? b : c ? d : e`).
+4. **Clear names, no abbreviations.** `ownership`, not `own`. `themeVersion`, not `tv`. Booleans start with
+   `is`/`has`/`can` (`isPublished`).
+5. **No clever code.** No complex `reduce`, no custom generic types, no "smart" helpers, no metaprogramming.
+   A plain `for` loop or `if` is fine.
+6. **Rule of three.** Do not create a shared helper or abstraction until the same code is needed in 3 places.
+   Repeating 5 lines twice is fine.
+7. **Comments explain *why*, not *what*.** Every exported function in a service or repository has a one-line comment
+   saying what it does. Do not comment obvious lines.
+8. **Exported functions declare their return type.**
+9. **No magic numbers or strings.** Limits and enum values live in `<feature>.constants.ts` or `shared/lib`.
+10. **`async`/`await` only.** Never `.then()` chains.
+11. **One error pattern:** throw `AppError` in services, catch it in actions (section 6).
+12. **`"use client"` only on small leaf components** that need state, effects or event handlers.
+    Pages and layouts are always Server Components.
+13. **Imports always use `@/`.** Named exports only; default exports only where Next.js requires them
+    (`page.tsx`, `layout.tsx`, `route.ts` handlers are named `GET`/`POST`).
+14. TypeScript strict. No `any`, no `@ts-ignore`, no `eslint-disable`.
+
+---
+
+## 4. Naming
 
 | Thing | Rule | Example |
 |---|---|---|
-| Folders | kebab-case | `forgot-password/` |
+| Feature folders | plural, kebab-case | `features/themes/`, `features/ownerships/` |
+| Feature files | `<singular>.<kind>.ts` | `theme.service.ts`, `version.repository.ts` |
+| Other folders | kebab-case | `forgot-password/` |
 | React component files | PascalCase, one component per file | `ThemeCard.tsx` |
-| Model files | PascalCase, singular | `ThemeVersion.ts` |
-| Other `.ts` files | camelCase | `themes.ts`, `connect.ts` |
-| Tests | next to the file, `.test.ts` | `semver.test.ts` |
+| Tests | next to the file, `.test.ts` | `theme.service.test.ts` |
 | Functions | camelCase, start with a verb | `getPublishedThemes`, `createThemeVersion` |
 | Server actions | camelCase + `Action` | `createThemeAction` |
 | Zod schemas | camelCase + `Schema` | `createThemeSchema` |
 | Types from zod | PascalCase + `Input` | `CreateThemeInput` |
+| Database record types | PascalCase + `Record` | `ThemeRecord` |
 | DTO types | PascalCase + `DTO` | `ThemeCardDTO` |
 | Constants | UPPER_SNAKE_CASE | `MAX_THEME_IMAGES` |
 
-Use **named exports** everywhere. Default exports only where Next.js requires them (`page.tsx`, `layout.tsx`, …).
-
 ---
 
-## 4. How a request flows
+## 5. How each layer is written
 
-### 4.1 Reading data (pages)
+### 5.1 Model (`theme.model.ts`)
+
+The model file is the **readable description of the database**. Every field has a short comment.
+The TypeScript type is **generated from the schema** with `InferSchemaType`, so it can never be out of date.
+
+```ts
+import { Schema, model, models, type InferSchemaType, type Model, type Types } from "mongoose";
+import { THEME_STATUSES } from "@/features/themes/theme.constants";
+
+const themeSchema = new Schema(
+  {
+    // Display name, e.g. "Aurora Blog". 2–80 chars.
+    name: { type: String, required: true, trim: true, minlength: 2, maxlength: 80 },
+    // Lifecycle: draft → published ⇄ unpublished. See docs/03-data-model.md section 5.
+    status: { type: String, required: true, enum: THEME_STATUSES, default: "draft" },
+    // Price in US cents. 2900 = $29.00.
+    priceCents: { type: Number, required: true, min: 100, max: 100000, validate: Number.isInteger },
+    // ... every other field from docs/03-data-model.md, in the same order
+  },
+  { collection: "themes", timestamps: true },
+);
+
+themeSchema.index({ slug: 1 }, { unique: true });
+// ... every index from docs/03-data-model.md
+
+export type ThemeRecord = InferSchemaType<typeof themeSchema> & { _id: Types.ObjectId };
+
+// `models.Theme ||` stops hot reload from defining the model twice.
+export const ThemeModel = (models.Theme as Model<ThemeRecord>) || model<ThemeRecord>("Theme", themeSchema);
+```
+
+Fields, limits and indexes come **only** from `docs/03-data-model.md`, in the same order.
+
+### 5.2 Repository (`theme.repository.ts`)
+
+- Only database queries. No business rules ("can this be published?" belongs in the service).
+- Calls `connectDB()` at the start of every function.
+- Uses `.lean()` for reads and returns `ThemeRecord` objects (or `null`), never Mongoose documents.
+- Every function that writes accepts an optional last parameter `session?: ClientSession` for transactions.
+
+```ts
+// Finds a theme by its slug, any status.
+export async function findThemeBySlug(slug: string): Promise<ThemeRecord | null> {
+  await connectDB();
+  return ThemeModel.findOne({ slug }).lean<ThemeRecord>();
+}
+```
+
+### 5.3 Service (`theme.service.ts`)
+
+- Business rules, checks, and calls to other features' services.
+- Throws `AppError` with the exact messages from the specs.
+- Returns **DTOs** (made by the mapper) to pages and actions. Never returns a `ThemeRecord` outside the feature.
+- No Next.js imports. Receives the user id as a parameter.
+
+### 5.4 Mapper (`theme.mapper.ts`)
+
+Small pure functions that turn a `ThemeRecord` into a DTO: `_id` becomes `id: string`, only the fields the
+page needs are kept.
+
+```ts
+export function toThemeCardDTO(theme: ThemeRecord): ThemeCardDTO {
+  return { id: theme._id.toString(), name: theme.name, slug: theme.slug, priceCents: theme.priceCents, ... };
+}
+```
+
+### 5.5 Actions (`theme.actions.ts`)
+
+Every server action follows these five steps **in this order**:
 
 ```
-page.tsx (Server Component)
-  → calls a service function, e.g. getThemeBySlug(slug)
-      → service connects to DB, runs a Mongoose query with .lean(), maps the result to a DTO
-  → passes the DTO to components
+1. auth check   → const user = await requireAdmin();   (or requireUser / requireVerifiedUser)
+2. validate     → const parsed = createThemeSchema.safeParse(...); if (!parsed.success) return { ok: false, ... }
+3. call service → inside try/catch (section 6)
+4. revalidate   → revalidatePath(...) for every page the spec lists
+5. return       → ActionResult, or redirect() when the spec says so (outside try/catch)
 ```
-
-- Pages are **Server Components** by default. Add `"use client"` only to components that need state,
-  effects or event handlers, and keep them small.
-- **No internal REST API for reading.** Pages call services directly.
-- Services **always return DTOs**, never Mongoose documents. A DTO has `id: string` instead of `_id`,
-  and contains only the fields the page needs.
-
-### 4.2 Changing data (forms)
-
-```
-Form (Client Component, uses React useActionState)
-  → server action, e.g. createThemeAction(prevState, formData)
-      1. auth check   (requireAdmin() / requireUser())
-      2. parse input  (zod schema .safeParse)
-      3. call service (createTheme(input))
-      4. revalidatePath(...) for pages that show this data
-      5. return ActionResult   — or redirect() on success when the spec says so
-```
-
-Every server action follows these five steps **in this order**. No exceptions.
 
 **The auth check is required in every action, even if the page's layout already checks.**
 Layouts do not protect server actions.
 
-### 4.3 Route handlers (`src/app/api/`)
+### 5.6 Pages (`app/**/page.tsx`)
 
-Only these exist:
+```tsx
+export default async function ThemePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const theme = await getPublishedThemeBySlug(slug);
+  if (!theme) notFound();
+  return <ThemeDetails theme={theme} />;
+}
+```
 
-| Route | Purpose |
+No internal REST API for reading data. Pages call services directly.
+
+### 5.7 Route handlers (`app/api/**/route.ts`)
+
+Only these four exist. Each one calls a single function from a feature and nothing else.
+
+| Route | Calls |
 |---|---|
-| `api/auth/[...all]` | Better Auth handler |
-| `api/webhooks/polar` | Payment webhooks (`06-payments.md`) |
-| `api/downloads/[versionId]` | Checks ownership, logs, redirects to a signed URL (`07-delivery-updates.md`) |
-| `api/cron/send-update-emails` | Called every 5 minutes by the server's cron, protected by `CRON_SECRET` (`09-emails.md`) |
+| `api/auth/[...all]` | Better Auth handler from `features/auth/auth.ts` |
+| `api/webhooks/polar` | `features/payments/payment.webhook.ts` (`06-payments.md`) |
+| `api/downloads/[versionId]` | `features/downloads/download.service.ts` (`07-delivery-updates.md`) |
+| `api/cron/send-update-emails` | `features/emails/update-email.sender.ts` (`09-emails.md`), protected by `CRON_SECRET` |
 
-Do not add route handlers for anything else.
+Do not add route handlers for anything else. Forms use server actions.
 
 ---
 
-## 5. Standard shapes
+## 6. Standard shapes
 
-### 5.1 `ActionResult` (in `src/types/action.ts`)
+### 6.1 `ActionResult` (in `shared/types/action.ts`)
 
 ```ts
 export type ActionResult<T = undefined> =
@@ -181,7 +348,7 @@ export type ActionResult<T = undefined> =
 - `fieldErrors` comes from `z.flattenError(result.error).fieldErrors` when zod validation fails.
 - The initial state for `useActionState` is `null`.
 
-### 5.2 `AppError` (in `src/server/errors.ts`)
+### 6.2 `AppError` (in `shared/errors.ts`)
 
 ```ts
 export const APP_ERROR_CODES = ["NOT_FOUND", "FORBIDDEN", "CONFLICT", "INVALID", "RATE_LIMITED"] as const;
@@ -195,7 +362,7 @@ export class AppError extends Error {
 }
 ```
 
-- Services throw `AppError` for expected problems. The `message` is shown to the user, so write it for a customer.
+- Services throw `AppError` for expected problems. The `message` is shown to the user.
   Every message is listed in the specs; do not invent new ones.
 - Server actions catch errors like this:
   ```ts
@@ -205,39 +372,29 @@ export class AppError extends Error {
     return { ok: false, error: "Something went wrong. Please try again." };
   }
   ```
-- Never catch the special errors thrown by `redirect()` and `notFound()`. Call them **outside** `try/catch`.
+- Never put `redirect()` or `notFound()` inside `try/catch`.
 
 ---
 
-## 6. Database rules
+## 7. Database rules
 
-- Connect with `connectDB()` from `src/server/db/connect.ts` at the start of every service function.
-  It caches the connection on `globalThis` so hot reload does not open new connections.
-- Define models like this, so hot reload does not redefine them:
-  ```ts
-  export const Theme = (models.Theme as Model<ThemeDoc>) || model<ThemeDoc>("Theme", themeSchema);
-  ```
-- Use `.lean()` for every read that only returns data.
-- Multi-document writes listed in `03-data-model.md` section 12 use a transaction:
-  ```ts
-  const session = await mongoose.startSession();
-  try {
-    await session.withTransaction(async () => { /* every query gets { session } */ });
-  } finally {
-    await session.endSession();
-  }
-  ```
-- Convert ids from user input with a helper `toObjectId(id: string)` in `src/server/db/ids.ts`
-  that throws `AppError("NOT_FOUND", ...)` for invalid ids. Never call `new Types.ObjectId(userInput)` directly.
+- `connectDB()` (`shared/db/connect.ts`) caches the connection on `globalThis` so hot reload does not open new
+  connections. Every repository function calls it first.
+- Multi-document writes listed in `03-data-model.md` section 12 run in a transaction, using the helper
+  `withTransaction(fn)` from `shared/db/transaction.ts`. The **service** that owns the event starts the transaction
+  and passes the `session` to every service and repository call inside it.
+- Convert ids from user input with `toObjectId(id: string)` from `shared/db/ids.ts`, which throws
+  `AppError("NOT_FOUND", ...)` for invalid ids. Never call `new Types.ObjectId(userInput)` directly.
 - Pagination: page size **20** everywhere. Pages are numbered from 1 and passed as `?page=2`.
 
 ---
 
-## 7. Auth rules
+## 8. Auth rules
 
-- The Better Auth instance is in `src/server/auth/auth.ts`, using the MongoDB adapter with the same
-  connection as Mongoose.
-- Session helpers in `src/server/auth/session.ts`:
+- The Better Auth instance is in `features/auth/auth.ts`, using the MongoDB adapter with the same connection
+  as Mongoose.
+- Session helpers are in `features/auth/session.ts`. This file uses Next.js (`headers()`, `redirect()`), so only
+  pages, layouts, actions and route handlers may import it — **never services**.
 
 | Helper | Returns | When there is no valid user |
 |---|---|---|
@@ -253,24 +410,23 @@ export class AppError extends Error {
 
 ---
 
-## 8. UI rules (Tailwind only)
+## 9. UI rules (Tailwind only)
 
-- Build every screen from the components in `src/components/ui/`. If a needed component does not exist, the task
-  that needs it will create it. Do not write one-off styled buttons/inputs inside pages.
+- Build every screen from the components in `shared/ui/`. If a needed component does not exist, the task that needs
+  it will create it. Do not write one-off styled buttons/inputs inside features.
 - Colors, fonts and radius are defined once as theme variables in `src/app/globals.css` (Tailwind v4 `@theme`).
   Use those names (`bg-primary`, `text-muted`), never raw hex values in components.
 - Mobile first. Every page must work at 360 px width.
-- Every form field has a `<label>`. Every image has `alt`. Buttons show a pending state while an action runs
-  (use `useFormStatus` or the `pending` value of `useActionState`).
+- Every form field has a `<label>`. Every image has `alt`. Buttons show a pending state while an action runs.
 - Use `next/image` for theme images and `next/link` for internal links.
-- Prices are always shown with `formatPrice(cents)` from `src/lib/money.ts` → `"$29.00"`.
-- Dates are always shown with `formatDate(date)` from `src/lib/dates.ts` → `"Oct 27, 2026"`.
+- Prices are always shown with `formatPrice(cents)` from `shared/lib/money.ts` → `"$29.00"`.
+- Dates are always shown with `formatDate(date)` from `shared/lib/dates.ts` → `"Oct 27, 2026"`.
 
 ---
 
-## 9. Environment variables
+## 10. Environment variables
 
-All are read and validated in `src/server/env.ts` with zod at startup. If one is missing or invalid, the app
+All are read and validated in `shared/config/env.ts` with zod at startup. If one is missing or invalid, the app
 fails to start with a clear message. `.env.example` lists every one of them.
 
 | Name | Example | Notes |
@@ -302,7 +458,7 @@ Adding an env variable = update `env.ts`, `.env.example`, and this table in the 
 
 ---
 
-## 10. Local development
+## 11. Local development
 
 - `docker compose up -d` starts MongoDB as a **single-node replica set** (needed for transactions) and MinIO (a local S3).
 - Payments use the **Polar sandbox** (`POLAR_SERVER=sandbox`). How to receive webhooks locally is in `06-payments.md`.
@@ -322,22 +478,22 @@ Adding an env variable = update `env.ts`, `.env.example`, and this table in the 
 
 ---
 
-## 11. Tests
+## 12. Tests
 
-- **Unit tests (Vitest)** are required for: everything in `src/lib/`, every zod schema in `src/schemas/`, and every
-  service function that changes data.
+- **Unit tests (Vitest)** are required for: everything in `shared/lib/`, every `*.schemas.ts`, every mapper,
+  and every service function that changes data.
 - Service tests use `mongodb-memory-server` (replica set mode, so transactions work).
-  A shared helper in `src/test/db.ts` starts it once and clears all collections between tests.
+  The helper `shared/test/db.ts` starts it once and clears all collections between tests.
 - Tests must not call real Polar, S3 or Resend. Those modules are replaced with `vi.mock`.
 - E2E tests (Playwright) cover only the main flows in `00-product.md` section 7. They are written in later tasks.
 
 ---
 
-## 12. Security rules
+## 13. Security rules
 
-- Every server action and route handler checks auth itself (section 4.2).
-- A customer can only read their own orders, ownerships and downloads. Always filter by `userId` from the session,
-  never from the request.
+- Every server action and route handler checks auth itself (section 5.5).
+- A customer can only read their own orders, ownerships and downloads. Always filter by the user id from the
+  session, never from the request.
 - Never trust prices or theme ids from the browser for payments. The server reads the price from the database.
 - Webhooks: verify the signature before reading anything (`06-payments.md`).
 - Zip files are never public. Download links expire after 5 minutes.

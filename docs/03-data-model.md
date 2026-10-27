@@ -3,7 +3,8 @@
 This document lists **every MongoDB collection**, every field, every rule and every index.
 Agents must not add, remove or rename fields. If you need a change, write it in `docs/QUESTIONS.md`.
 
-Where model files live in the code is defined in `docs/02-architecture.md`.
+Each model lives in its feature folder as `<singular>.model.ts` and follows the template in
+`docs/02-architecture.md` section 5.1 (field comments, `InferSchemaType`, `<Name>Model` export).
 
 ---
 
@@ -21,6 +22,7 @@ Where model files live in the code is defined in `docs/02-architecture.md`.
 6. **Strings** are trimmed (`trim: true`) unless the table says otherwise.
 7. **Enums** are defined once as a TypeScript `as const` array and reused by the Mongoose schema
    and the zod schema. Example:
+   The list lives in the feature's `<singular>.constants.ts` file:
    ```ts
    export const THEME_STATUSES = ["draft", "published", "unpublished"] as const;
    export type ThemeStatus = (typeof THEME_STATUSES)[number];
@@ -58,17 +60,17 @@ webhookEvents   (log of received payment webhooks, for idempotency)
 downloadLogs    (one row per download)
 ```
 
-| Collection | Mongoose model | Managed by |
-|---|---|---|
-| `user`, `session`, `account`, `verification` | — (see section 3) | **Better Auth** |
-| `categories` | `Category` | us |
-| `themes` | `Theme` | us |
-| `themeVersions` | `ThemeVersion` | us |
-| `orders` | `Order` | us |
-| `ownerships` | `Ownership` | us |
-| `coupons` | `Coupon` | us |
-| `webhookEvents` | `WebhookEvent` | us |
-| `downloadLogs` | `DownloadLog` | us |
+| Collection | Model export | File | Managed by |
+|---|---|---|---|
+| `user`, `session`, `account`, `verification` | — (see section 3) | — | **Better Auth** |
+| `categories` | `CategoryModel` | `features/categories/category.model.ts` | us |
+| `themes` | `ThemeModel` | `features/themes/theme.model.ts` | us |
+| `themeVersions` | `VersionModel` | `features/versions/version.model.ts` | us |
+| `orders` | `OrderModel` | `features/orders/order.model.ts` | us |
+| `ownerships` | `OwnershipModel` | `features/ownerships/ownership.model.ts` | us |
+| `coupons` | `CouponModel` | `features/coupons/coupon.model.ts` | us |
+| `webhookEvents` | `WebhookEventModel` | `features/payments/webhook-event.model.ts` | us |
+| `downloadLogs` | `DownloadLogModel` | `features/downloads/download-log.model.ts` | us |
 
 ---
 
@@ -77,8 +79,8 @@ downloadLogs    (one row per download)
 Better Auth creates and writes these collections itself through its MongoDB adapter.
 
 - **Never write to these collections with Mongoose.** Change users only through Better Auth APIs.
-- Reading users for the admin panel (list customers, show a customer) is allowed through a **read-only**
-  helper defined in `docs/04-api.md`.
+- Reading users for the admin panel (list customers, show a customer) is done only in
+  `features/users/user.repository.ts`, which is **read-only** (no insert/update/delete).
 - `user._id` is the id that all our models store in their `userId` fields.
 
 ### Extra field we add to `user`
@@ -98,7 +100,7 @@ environment variable (D-024).
 
 ---
 
-## 4. `categories` — model `Category`
+## 4. `categories` — `CategoryModel`
 
 A group of themes, e.g. "Blog", "Business", "Shop".
 
@@ -119,7 +121,7 @@ A group of themes, e.g. "Blog", "Business", "Shop".
 
 ---
 
-## 5. `themes` — model `Theme`
+## 5. `themes` — `ThemeModel`
 
 One WordPress theme for sale.
 
@@ -183,7 +185,7 @@ One WordPress theme for sale.
 
 ---
 
-## 6. `themeVersions` — model `ThemeVersion`
+## 6. `themeVersions` — `VersionModel`
 
 One uploaded `.zip` of a theme. Never deleted, file never replaced (D-015).
 
@@ -228,7 +230,7 @@ One uploaded `.zip` of a theme. Never deleted, file never replaced (D-015).
 
 ---
 
-## 7. `orders` — model `Order`
+## 7. `orders` — `OrderModel`
 
 One successful payment for one theme. Created **only** by the payment webhook (D-034).
 Admin grants do **not** create orders.
@@ -269,7 +271,7 @@ Admin grants do **not** create orders.
 
 ---
 
-## 8. `ownerships` — model `Ownership`
+## 8. `ownerships` — `OwnershipModel`
 
 "This user can download this theme." This is the **only** thing the download code checks.
 
@@ -302,7 +304,7 @@ Admin grants do **not** create orders.
 
 ---
 
-## 9. `coupons` — model `Coupon`
+## 9. `coupons` — `CouponModel`
 
 | Field | Type | Required | Rules |
 |---|---|---|---|
@@ -330,7 +332,7 @@ Admin grants do **not** create orders.
 
 ---
 
-## 10. `webhookEvents` — model `WebhookEvent`
+## 10. `webhookEvents` — `WebhookEventModel`
 
 A record of each payment webhook we received. Used to make processing idempotent (D-035).
 **Do not store the webhook body** (it contains personal data).
@@ -352,7 +354,7 @@ The exact processing steps (insert first, skip if duplicate, retry on `failed`) 
 
 ---
 
-## 11. `downloadLogs` — model `DownloadLog`
+## 11. `downloadLogs` — `DownloadLogModel`
 
 One row each time a customer gets a download link.
 

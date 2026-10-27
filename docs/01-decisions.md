@@ -79,6 +79,18 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-052 | Two buckets: a **private** bucket for `.zip` files and a **public** bucket for theme images. Public access is set by bucket policy, not per-object ACLs. | LOCKED |
 | D-053 | The database stores **object keys** (e.g. `themes/abc/images/x.webp`), never full file URLs. URLs are built at runtime from an env variable, so changing provider or CDN needs no database change. | LOCKED |
 
+## Code structure
+
+| ID | Decision | Status |
+|---|---|---|
+| D-084 | **Feature-based folders**: `src/features/<feature>/` holds that feature's model, repository, service, mapper, actions, schemas, types, constants and components. Shared code lives in `src/shared/` (UI components in `shared/ui`). `src/app/` only holds thin Next.js routes. | LOCKED |
+| D-085 | Forms use **server actions** (not API routes). **Services and repositories never import from Next.js**, so they can move to another backend (e.g. Express) later. | LOCKED |
+| D-086 | Layers are always: page/action → service → repository → model. **No layer is ever skipped**, even for simple reads. | LOCKED |
+| D-087 | Features use each other **only through services**. Never import another feature's repository or model. | LOCKED |
+| D-088 | No `index.ts` barrel files. Import from the real file with the `@/` alias. | LOCKED |
+| D-089 | KISS coding rules in `02-architecture.md` section 3 apply to all code. | LOCKED |
+| D-090 | Model types are generated from the Mongoose schema with `InferSchemaType`. Never write the same type by hand. | LOCKED |
+
 ## Demos
 
 | ID | Decision | Status |

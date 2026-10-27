@@ -62,11 +62,20 @@ Do not invent a new pattern when one already exists.
 
 ## Coding conventions
 
-Full conventions are in `docs/02-architecture.md` (written before coding starts).
-Until then, the short version:
+The full rules are in `docs/02-architecture.md`. Read it before your first task. The short version:
 
-- TypeScript in strict mode. No `any`.
-- Validate every input from the outside world (forms, URL params, webhooks) with `zod`.
-- Money is always an **integer number of cents** (`1900` = $19.00). Never use floats for money.
-- Never put secrets in code. Read them from environment variables listed in `.env.example`.
-- Never log passwords, tokens, API keys or full webhook bodies.
+- **Feature folders.** Code for a feature lives in `src/features/<feature>/`
+  (`theme.model.ts`, `theme.repository.ts`, `theme.service.ts`, `theme.actions.ts`, `components/`...).
+  Shared code lives in `src/shared/`. `src/app/` only has thin pages and route handlers.
+- **Layers, always in this order, never skipped:** page/action → service → repository → model.
+- **Services and repositories never import from `next/*`.**
+- **Features use each other only through services.** Never import another feature's repository or model.
+- **Components never fetch data.** Pages fetch through services and pass props.
+- **KISS:** functions ~40 lines max, files ~250 lines max, max 2 levels of nesting, early returns,
+  clear names without abbreviations, no clever code, no new abstraction until needed 3 times.
+- No `index.ts` barrel files. Imports use `@/`. Named exports only (except where Next.js requires default).
+- TypeScript strict. No `any`, `@ts-ignore` or `eslint-disable`.
+- Validate every outside input with `zod`.
+- Money is always an **integer number of cents** (`1900` = $19.00).
+- Never put secrets in code. Only `src/shared/config/env.ts` reads environment variables.
+- Never log passwords, tokens, API keys or webhook bodies.
