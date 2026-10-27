@@ -31,6 +31,12 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-011 | A refund removes the buyer's access to that theme automatically. | LOCKED |
 | D-012 | Admin can grant a theme to a customer manually (no payment). | LOCKED |
 | D-013 | English only. Left-to-right only. | LOCKED |
+| D-014 | Only a **full** refund removes access. A partial refund (e.g. a goodwill discount after purchase) keeps access. | DEFAULT |
+| D-015 | A theme version can never be deleted and its zip can never be replaced. A wrong upload is fixed by uploading a new, higher version. A new version number must be higher than the current latest one. | DEFAULT |
+| D-016 | When a theme is unpublished it disappears from the store, but people who own it can still download it and still get update emails. | DEFAULT |
+| D-017 | A theme's slug (its URL part) can be changed only while the theme is a draft. After first publish it is fixed. | DEFAULT |
+| D-018 | After a coupon is created, only its active flag, expiry date and usage limit can change. Code, discount and themes are fixed; make a new coupon instead. | DEFAULT |
+| D-019 | Changelog entries are structured: each line has a type (`new`, `improved`, `fixed`, `removed`) and a short text. | DEFAULT |
 
 ## Accounts
 
@@ -67,8 +73,11 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-046 | Lint/format: ESLint + Prettier. | LOCKED |
 | D-047 | Email sending: **Resend**. Bulk update emails are sent in batches. | LOCKED |
 | D-048 | Hosting: the owner's existing **DigitalOcean VPS**. Details (Docker or not, reverse proxy, process manager) are decided later in a deployment doc. | LOCKED (details OPEN) |
-| D-050 | Database hosting: **MongoDB Atlas**. | LOCKED |
 | D-049 | Theme `.zip` files are stored in **private** object storage and downloaded through short-lived signed URLs. They are never public and never served from the Next.js `public/` folder. | LOCKED |
+| D-050 | Database hosting: **MongoDB Atlas**. | LOCKED |
+| D-051 | File storage uses the **standard S3 API** (`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`). The provider (Amazon S3, DigitalOcean Spaces, Cloudflare R2…) is chosen **only by environment variables** (endpoint, region, keys, bucket names). No provider-specific code. The actual provider is picked at deployment. | LOCKED |
+| D-052 | Two buckets: a **private** bucket for `.zip` files and a **public** bucket for theme images. Public access is set by bucket policy, not per-object ACLs. | DEFAULT |
+| D-053 | The database stores **object keys** (e.g. `themes/abc/images/x.webp`), never full file URLs. URLs are built at runtime from an env variable, so changing provider or CDN needs no database change. | DEFAULT |
 
 ## Demos
 
@@ -92,5 +101,4 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 
 | ID | Question | Planner's recommendation |
 |---|---|---|
-| O-001 | Where do theme zips and screenshots live? | **DigitalOcean Spaces** (same vendor as your VPS, S3-compatible, about $5/month). Alternative: Cloudflare R2 (no download fees). |
 | O-003 | Store domain name and demo domain name? | Owner does not have one yet. Code must read the site URL from an env variable, never hard-code it. |

@@ -8,7 +8,7 @@ Code must follow them. If code and docs disagree, the docs win (or the docs get 
 | `00-product.md` | What we sell, to whom, MVP features, what is NOT in the MVP | Draft — under review |
 | `01-decisions.md` | Numbered log of every locked decision | Draft — under review |
 | `02-architecture.md` | Stack versions, folder layout, coding conventions, env vars | Not written |
-| `03-data-model.md` | Every Mongoose model, field by field, with indexes | Not written |
+| `03-data-model.md` | Every Mongoose model, field by field, with indexes | Draft — under review |
 | `04-api.md` | Every route handler / server action: input, output, auth, errors | Not written |
 | `05-pages.md` | Every page: URL, data, components, empty/loading/error states | Not written |
 | `06-payments.md` | Polar checkout, webhooks, idempotency, provider interface | Not written |
