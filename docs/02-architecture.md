@@ -32,6 +32,7 @@ The major versions below were current when this plan was written (October 2026).
 | Email templates | `@react-email/components` | 1 |
 | Markdown display | `react-markdown` | 10 |
 | Unit tests | `vitest` | 5 |
+| Test coverage | `@vitest/coverage-v8` | same as vitest |
 | DB for tests | `mongodb-memory-server` | 11 |
 | E2E tests | `@playwright/test` | 1 |
 | Lint / format | `eslint` (Next.js config), `prettier`, `prettier-plugin-tailwindcss` | — |
@@ -68,10 +69,19 @@ form handling, validation, types and UI — lives in **one folder**. Code used b
    │  ├─ orders/               paid orders, admin dashboard numbers
    │  ├─ coupons/
    │  ├─ payments/             PaymentProvider interface, Polar, checkout, webhooks
+   │  ├─ wallet-payments/      Egyptian wallet manual payments
    │  ├─ downloads/            download links, download logs
-   │  └─ emails/               sending emails, email templates, update-email sender
+   │  ├─ favorites/            favorite themes, followed categories
+   │  ├─ notifications/        notification center, notification jobs (fan-out)
+   │  ├─ feedback/             customer feedback inbox
+   │  ├─ activity/             activity log
+   │  ├─ settings/             wallet settings (one document)
+   │  └─ emails/               sending emails, email templates
+   ├─ styles/
+   │  └─ tokens.css            ALL design values (colors, fonts, radius, shadows). See section 9.
    └─ shared/
-      ├─ ui/                   Button, Input, Textarea, Select, Badge, Card, Alert, ... (used by all features)
+      ├─ ui/                   UI kit: Button, Input, Text, Heading, Card, Badge, Alert, ... (only place with visual classes)
+      ├─ layout/               StoreHeader, StoreFooter, AccountShell, AdminShell, PageContainer, Stack, Grid
       ├─ lib/                  small pure helpers: money.ts, dates.ts, semver.ts, slug.ts
       ├─ db/                   connect.ts, ids.ts, transaction.ts
       ├─ storage/              s3.ts (the only place that uses @aws-sdk)
@@ -138,7 +148,7 @@ app/ page.tsx or route.ts         (Next.js)
 | `*.repository.ts` | own model, `shared/db/*`, `mongoose` types | `next/*`, services, other features' models |
 | `*.model.ts` | `mongoose`, own constants | anything else |
 | `*.mapper.ts`, `*.schemas.ts`, `*.types.ts`, `*.constants.ts` | `zod`, own constants/types, `shared/lib` | services, repositories, models, `next/*` |
-| `components/**` | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/lib` | services, repositories, models |
+| `components/**` | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/layout`, `shared/lib` | services, repositories, models |
 | `shared/**` | other `shared/*` | anything in `features/` |
 
 The three most important rules:
@@ -328,7 +338,7 @@ Only these four exist. Each one calls a single function from a feature and nothi
 | `api/auth/[...all]` | Better Auth handler from `features/auth/auth.ts` |
 | `api/webhooks/polar` | `features/payments/payment.webhook.ts` (`06-payments.md`) |
 | `api/downloads/[versionId]` | `features/downloads/download.service.ts` (`07-delivery-updates.md`) |
-| `api/cron/send-update-emails` | `features/emails/update-email.sender.ts` (`09-emails.md`), protected by `CRON_SECRET` |
+| `api/cron/process-notifications` | `features/notifications/notification-job.processor.ts` (`09-emails.md`), protected by `CRON_SECRET` |
 
 Do not add route handlers for anything else. Forms use server actions.
 
@@ -403,23 +413,107 @@ export class AppError extends Error {
 | `requireVerifiedUser()` | `CurrentUser` | not logged in → like `requireUser`; not verified → `redirect("/verify-email")` |
 | `requireAdmin()` | `CurrentUser` | `notFound()` — the admin area must look like it does not exist |
 
-  `CurrentUser` = `{ id: string; name: string; email: string; emailVerified: boolean; isAdmin: boolean; updateEmailsEnabled: boolean }`.
+  `CurrentUser` = `{ id: string; name: string; email: string; emailVerified: boolean; isAdmin: boolean; country: string | null }`.
+- A user with `disabled: true` is treated as **not logged in** by every helper (extra safety on top of the
+  Better Auth hook, D-121). The login form shows: `"This account has been disabled. Contact support if you think this is a mistake."`
 - `isAdmin` = the user's email (lowercased) is in `env.ADMIN_EMAILS`.
 - No Next.js middleware/proxy for auth. Checks happen in layouts, pages, actions and route handlers.
 - The `next` value in login redirects must be a path starting with `/` and not `//`. Otherwise use `/`.
 
 ---
 
-## 9. UI rules (Tailwind only)
+## 9. Styling — separated from logic (D-130)
 
-- Build every screen from the components in `shared/ui/`. If a needed component does not exist, the task that needs
-  it will create it. Do not write one-off styled buttons/inputs inside features.
-- Colors, fonts and radius are defined once as theme variables in `src/app/globals.css` (Tailwind v4 `@theme`).
-  Use those names (`bg-primary`, `text-muted`), never raw hex values in components.
+**Goal:** you can tell an agent "change the colors / fonts / look of the site" and it changes **only styling files**.
+No feature file, service or test changes, so the logic cannot break.
+
+### 9.1 The four layers
+
+| Layer | Where | What it contains | Changed by a redesign? |
+|---|---|---|---|
+| 1. Design tokens | `src/styles/tokens.css` | Every color, font, radius and shadow, as CSS variables with **meaning-based names** | **Yes** |
+| 2. UI kit | `src/shared/ui/` | Small components that own all visual classes: `Button`, `Input`, `Text`, `Heading`, `Card`, `Badge`, `Alert`, `Table`, ... | **Yes** |
+| 3. Layouts | `src/shared/layout/` | Page frames: `StoreHeader`, `StoreFooter`, `AccountShell`, `AdminShell`, `PageContainer`, `Stack`, `Grid`, `Section` | **Yes** |
+| 4. Feature components | `src/features/*/components/` | Put UI kit + layouts together and show data. **Only layout classes.** | No |
+
+### 9.2 Design tokens
+
+`tokens.css` defines raw values on `:root` and maps them to Tailwind names with `@theme inline`:
+
+```css
+:root {
+  --color-background: #ffffff;
+  --color-surface: #f8fafc;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-primary: #4f46e5;
+  --color-primary-foreground: #ffffff;
+  /* ... border, accent, success, warning, danger, focus; --font-sans, --font-heading; --radius-*; --shadow-* */
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+  --color-primary: var(--color-primary);
+  /* ... one line per token */
+}
+```
+
+- Names describe **meaning** (`primary`, `danger`, `text-muted`), never the color (`blue`, `red-500`).
+- Raw values (`#4f46e5`, `16px`, `Inter`) appear **only** in `tokens.css`.
+- The full token list is fixed in T-001. Adding a token = edit `tokens.css` only.
+
+### 9.3 UI kit rules (`shared/ui`)
+
+- Each component has **variant props** instead of extra classes: `<Button variant="primary" size="md">`,
+  `<Text size="sm" tone="muted">`, `<Badge tone="success">`.
+- UI kit components do not accept a `className` prop (that would let features add styling). Exception: none.
+- They contain no business logic and no data fetching.
+
+### 9.4 What feature components may use
+
+Only these Tailwind classes (and their `sm:`, `md:`, `lg:`, `xl:` versions) are allowed in `features/**` and `app/**`:
+
+| Group | Allowed class prefixes |
+|---|---|
+| Display | `flex`, `inline-flex`, `grid`, `block`, `inline-block`, `hidden`, `contents` |
+| Flex / grid | `flex-`, `grid-cols-`, `col-span-`, `row-span-`, `items-`, `justify-`, `self-`, `place-`, `order-`, `gap-`, `space-x-`, `space-y-`, `shrink-`, `grow` |
+| Size | `w-`, `min-w-`, `max-w-`, `h-`, `min-h-`, `max-h-`, `size-`, `aspect-` |
+| Spacing | `p-`, `px-`, `py-`, `pt-`, `pb-`, `pl-`, `pr-`, `m-`, `mx-`, `my-`, `mt-`, `mb-`, `ml-`, `mr-` |
+| Position | `relative`, `absolute`, `sticky`, `fixed`, `inset-`, `top-`, `bottom-`, `left-`, `right-`, `z-` |
+| Other | `overflow-`, `truncate`, `line-clamp-`, `sr-only` |
+
+**Everything else is forbidden** in features and pages: colors (`bg-`, `text-`, `border-` colors), font and text size
+(`text-sm`, `font-bold`), `rounded`, `shadow`, `opacity`, `transition`, `hover:` and other state styles.
+Need a bold muted small text? Use `<Text size="sm" tone="muted" weight="bold">`. Need a new look? Add a variant to the UI kit.
+
+- `className` values in features must be **plain string literals** (no template strings, no building class names
+  from variables) so the checker can read them. Use `clsx` only with literal strings.
+- **`pnpm check:styles`** (`scripts/check-styles.mjs`, plain Node, no packages) scans every `.tsx` file in
+  `src/features` and `src/app` and fails if it finds a class that is not in the table above. It runs in CI.
+
+### 9.5 Logic stays out of components
+
+- Components receive data as props and call actions. They contain no business rules.
+- When a client component needs more than about 15 lines of logic (state, effects, upload steps), move it into a
+  hook file next to it: `useWalletProofUpload.ts` used by `WalletProofForm.tsx`.
+
+### 9.6 Tests never depend on styling
+
+- Tests and E2E find elements by **role, label or text** (`getByRole("button", { name: "Buy" })`), or by
+  `data-testid` when there is no good role. **Never by CSS class.**
+- So a redesign cannot break a test. If a test breaks during a "styling only" task, the task changed something it should not.
+
+### 9.7 A "styling only" task
+
+May change only: `src/styles/tokens.css`, `src/shared/ui/**`, `src/shared/layout/**`, font setup in
+`src/app/layout.tsx`, and images/fonts in `public/`. All tests must pass **without changing any test**.
+
+### 9.8 Other UI rules
+
 - Mobile first. Every page must work at 360 px width.
 - Every form field has a `<label>`. Every image has `alt`. Buttons show a pending state while an action runs.
 - Use `next/image` for theme images and `next/link` for internal links.
-- Prices are always shown with `formatPrice(cents)` from `shared/lib/money.ts` → `"$29.00"`.
+- Prices are always shown with `formatPrice(amount, currency)` from `shared/lib/money.ts` → `"$29.00"`, `"1,465 EGP"`.
 - Dates are always shown with `formatDate(date)` from `shared/lib/dates.ts` → `"Oct 27, 2026"`.
 
 ---
@@ -453,6 +547,7 @@ fails to start with a clear message. `.env.example` lists every one of them.
 | `EMAIL_FROM` | `Store <hello@example.com>` | |
 | `SUPPORT_EMAIL` | `support@example.com` | Shown on Contact page and in emails. |
 | `CRON_SECRET` | 32+ random chars | Sent by the server cron as `Authorization: Bearer <secret>`. |
+| `PAYMENT_PROVIDER` | `polar` or `fake` | `fake` only for local development and E2E; refused when `NODE_ENV=production` (D-133). |
 
 Adding an env variable = update `env.ts`, `.env.example`, and this table in the same PR, and only if the task says so.
 
@@ -470,22 +565,24 @@ Adding an env variable = update `env.ts`, `.env.example`, and this table in the 
 | `pnpm build` | Production build |
 | `pnpm lint` | ESLint, zero warnings allowed |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Vitest unit tests |
+| `pnpm test` | Vitest unit + integration tests |
+| `pnpm test:coverage` | Tests with coverage report; fails below the minimum (D-134) |
+| `pnpm check:styles` | Styling rule check (section 9.4) |
 | `pnpm format` | Prettier write |
 | `pnpm e2e` | Playwright tests |
 
-**Before every commit:** `pnpm lint && pnpm typecheck && pnpm test` must pass.
+**Before every commit:** `pnpm lint && pnpm typecheck && pnpm check:styles && pnpm test` must pass.
 
 ---
 
 ## 12. Tests
 
-- **Unit tests (Vitest)** are required for: everything in `shared/lib/`, every `*.schemas.ts`, every mapper,
-  and every service function that changes data.
-- Service tests use `mongodb-memory-server` (replica set mode, so transactions work).
-  The helper `shared/test/db.ts` starts it once and clears all collections between tests.
-- Tests must not call real Polar, S3 or Resend. Those modules are replaced with `vi.mock`.
-- E2E tests (Playwright) cover only the main flows in `00-product.md` section 7. They are written in later tasks.
+The full testing rules are in **`docs/10-testing.md`**. Short version:
+
+- Service tests run against a **real in-memory MongoDB** — never mock repositories or models.
+- Only external services (Polar, S3, Resend) are replaced, by fake implementations in `shared/test/fakes/`.
+- Every task lists its **required test cases**. All of them must exist and pass.
+- CI (GitHub Actions) runs every check on every Pull Request.
 
 ---
 

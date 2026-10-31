@@ -38,6 +38,39 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-018 | After a coupon is created, only its active flag, expiry date and usage limit can change. Code, discount and themes are fixed; make a new coupon instead. | LOCKED |
 | D-019 | Changelog entries are structured: each line has a type (`new`, `improved`, `fixed`, `removed`) and a short text. | LOCKED |
 
+## Egyptian wallet payments
+
+| ID | Decision | Status |
+|---|---|---|
+| D-100 | Customers whose country is Egypt can pay with an Egyptian wallet (Vodafone Cash, InstaPay, …) by **manual transfer**. Polar does not support these wallets. The owner checks the transfer and approves or rejects it in the admin panel. There is no wallet API integration. | LOCKED |
+| D-101 | Wallet price in EGP = `ceil(USD price after coupon × exchange rate)` in **whole pounds**. The exchange rate is set by the admin in Settings. The EGP amount is fixed on the payment request when it is created. | DEFAULT |
+| D-102 | Each user has a `country` (ISO code, e.g. `EG`). Email registration asks for it (pre-selected from the `cf-ipcountry` request header when present). Google users without a country are asked at their first checkout. It can be changed in Settings. | DEFAULT |
+| D-103 | We have our own checkout page `/checkout/[slug]` for every customer. Coupons are typed and checked **there by our server**, for both methods. Polar receives the matching discount id; customers cannot type codes on Polar's page. | DEFAULT |
+| D-104 | The transfer screenshot is stored in the **private** bucket. Only the admin can view it, through a signed URL. | DEFAULT |
+| D-105 | A wallet order is refunded by hand: the owner returns the money outside the site, then clicks "Mark as refunded", which removes access. | DEFAULT |
+
+## Customer engagement
+
+| ID | Decision | Status |
+|---|---|---|
+| D-110 | Customers can **favorite themes** and **follow categories**. | LOCKED |
+| D-111 | In-app notification center (bell + page) for every customer. Email copies follow the per-type switches in `00-product.md` 3.7. Payment and feedback-reply emails cannot be turned off. | LOCKED |
+| D-112 | Admin announcements: audience = all customers, owners of one theme, or one customer. Optional email copy, only to customers with announcement emails on. | LOCKED |
+| D-113 | Feedback inbox: logged-in customers send feedback (subject + message); admin reads, replies (as notification + email) and resolves. | DEFAULT |
+| D-114 | Best sellers are ranked by `themes.stats.salesCount` (paid, non-refunded orders, both methods). Shown on the home page and the customer dashboard. | DEFAULT |
+| D-115 | Search = case-insensitive "contains" match on theme name and tagline (escaped regex), plus category filter and sort. No search engine. | DEFAULT |
+| D-116 | Notifications to many people (new version, new theme in category, announcement) are created by a **notification job** processed in batches by the cron route, never inside the admin's request. | DEFAULT |
+
+## Admin
+
+| ID | Decision | Status |
+|---|---|---|
+| D-120 | Admin can **disable / enable** customer accounts. A disabled user cannot log in and all their sessions are deleted. Their data stays. | LOCKED |
+| D-121 | Disabling is built with a `disabled` user field and a Better Auth session hook that refuses new sessions for disabled users. (Planner verifies the exact Better Auth wiring in T-002.) | DEFAULT |
+| D-122 | Admin can revoke **any** ownership (not only grants), with a reason. | LOCKED |
+| D-123 | Activity log of important events (list in `00-product.md` 4.8). Kept for 1 year. Downloads are counted, not logged there. | DEFAULT |
+| D-124 | Revenue is always reported **per currency** (USD and EGP separately). Never converted or added together. | DEFAULT |
+
 ## Accounts
 
 | ID | Decision | Status |
@@ -56,7 +89,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-031 | **MongoDB is the source of truth** for themes, orders, ownership and coupons. Polar only takes the payment and tells us about it by webhook. | LOCKED |
 | D-032 | All Polar code lives behind a `PaymentProvider` interface. No other part of the code imports the Polar SDK directly. This makes replacing Polar a one-folder change. | LOCKED |
 | D-033 | Themes and coupons are created only in **our** admin panel. Our server creates or updates the matching Polar product and discount through the Polar API and stores the Polar IDs. Nobody edits products in the Polar dashboard by hand. | LOCKED |
-| D-034 | Ownership is granted **only by the webhook** (or by admin grant), never by the checkout success page. | LOCKED |
+| D-034 | Ownership is granted **only** by: the Polar webhook, an admin approving a wallet payment, or an admin grant. Never by the checkout success page. | LOCKED |
 | D-035 | Webhooks are verified by signature and handled idempotently (the same event processed twice changes nothing). | LOCKED |
 | D-036 | We do not use Polar's built-in "benefits" (file downloads, license keys). We deliver files ourselves. | LOCKED |
 
@@ -90,6 +123,16 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-088 | No `index.ts` barrel files. Import from the real file with the `@/` alias. | LOCKED |
 | D-089 | KISS coding rules in `02-architecture.md` section 3 apply to all code. | LOCKED |
 | D-090 | Model types are generated from the Mongoose schema with `InferSchemaType`. Never write the same type by hand. | LOCKED |
+
+## Styling and tests
+
+| ID | Decision | Status |
+|---|---|---|
+| D-130 | **Styling is separated from logic.** All design values (colors, fonts, radius, shadows) live in one tokens file. Only `shared/ui` and `shared/layout` may use visual Tailwind classes. Feature components may use only layout classes. Enforced by `pnpm check:styles`. Details in `02-architecture.md` section 9. | LOCKED |
+| D-131 | **Tests test real logic.** Service tests run against a real in-memory MongoDB. Only external services (Polar, S3, Resend) are replaced, by fake implementations. Every task lists its required test cases. Details in `10-testing.md`. | LOCKED |
+| D-132 | GitHub Actions runs lint, typecheck, style check, unit/integration tests with coverage, build and E2E on every Pull Request. A PR is merged only when everything is green. | DEFAULT |
+| D-133 | A **fake payment provider** exists for local development and E2E tests. The app refuses to start with it when `NODE_ENV=production`. | DEFAULT |
+| D-134 | Coverage minimum: 80% of lines and branches in `features/**/*.service.ts`, `*.mapper.ts`, `*.schemas.ts` and `shared/lib`. | DEFAULT |
 
 ## Demos
 

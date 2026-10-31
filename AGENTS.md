@@ -79,3 +79,22 @@ The full rules are in `docs/02-architecture.md`. Read it before your first task.
 - Money is always an **integer number of cents** (`1900` = $19.00).
 - Never put secrets in code. Only `src/shared/config/env.ts` reads environment variables.
 - Never log passwords, tokens, API keys or webhook bodies.
+
+## Styling rules (short version — full rules in `docs/02-architecture.md` section 9)
+
+- All colors, fonts, radius and shadows live in `src/styles/tokens.css`. Never write a raw color or font anywhere else.
+- Visual Tailwind classes (colors, text size, font, rounded, shadow, hover…) are allowed **only** in
+  `src/shared/ui/` and `src/shared/layout/`. Feature components and pages use **only layout classes**
+  (flex, grid, gap, padding, margin, width…). `pnpm check:styles` enforces this.
+- Need a different look in a feature? Use a UI kit variant (`<Text tone="muted">`) or add one to the UI kit.
+
+## Testing rules (short version — full rules in `docs/10-testing.md`)
+
+- Write **every** test in the task's `Required tests` list, with the same names.
+- Service tests use the real in-memory MongoDB. **Never mock our own code** (repositories, models, services).
+  Only Polar, S3 and email are replaced, by the fakes in `src/shared/test/fakes/`.
+- Every assertion checks a real value (and the database). Errors are checked by code **and** exact message.
+- Never change or delete an existing test to make your code pass. No `.skip` / `.only` / `.todo`.
+- **Break check:** for at least 3 required tests, temporarily break the code they protect, confirm they fail,
+  restore the code, and list this in the PR description.
+- Before every commit: `pnpm lint && pnpm typecheck && pnpm check:styles && pnpm test`.
