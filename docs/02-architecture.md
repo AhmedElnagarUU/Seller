@@ -15,27 +15,27 @@ The two goals behind every rule here:
 Exact versions are pinned (no `^` or `~`) in `package.json` by task T-001.
 The major versions below were current when this plan was written (October 2026).
 
-| Purpose | Package | Major |
-|---|---|---|
-| Runtime | Node.js | 22 LTS |
-| Framework | `next` (App Router) | 16 |
-| UI | `react`, `react-dom` | 19 |
-| Language | `typescript` | version officially supported by the pinned Next.js; chosen in T-001 |
-| Styling | `tailwindcss`, `@tailwindcss/postcss` | 4 |
-| Class names helper | `clsx` | 2 |
-| Database | `mongoose` | 9 |
-| Validation | `zod` | 4 |
-| Auth | `better-auth` | 1 |
-| Payments | `@polar-sh/sdk` | 1 |
-| File storage | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` | 3 |
-| Email sending | `resend` | 6 |
-| Email templates | `@react-email/components` | 1 |
-| Markdown display | `react-markdown` | 10 |
-| Unit tests | `vitest` | 5 |
-| Test coverage | `@vitest/coverage-v8` | same as vitest |
-| DB for tests | `mongodb-memory-server` | 11 |
-| E2E tests | `@playwright/test` | 1 |
-| Lint / format | `eslint` (Next.js config), `prettier`, `prettier-plugin-tailwindcss` | — |
+| Purpose            | Package                                                              | Major                                                               |
+| ------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Runtime            | Node.js                                                              | 22 LTS                                                              |
+| Framework          | `next` (App Router)                                                  | 16                                                                  |
+| UI                 | `react`, `react-dom`                                                 | 19                                                                  |
+| Language           | `typescript`                                                         | version officially supported by the pinned Next.js; chosen in T-001 |
+| Styling            | `tailwindcss`, `@tailwindcss/postcss`                                | 4                                                                   |
+| Class names helper | `clsx`                                                               | 2                                                                   |
+| Database           | `mongoose`                                                           | 9                                                                   |
+| Validation         | `zod`                                                                | 4                                                                   |
+| Auth               | `better-auth`                                                        | 1                                                                   |
+| Payments           | `@polar-sh/sdk`                                                      | 1                                                                   |
+| File storage       | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`                | 3                                                                   |
+| Email sending      | `resend`                                                             | 6                                                                   |
+| Email templates    | `@react-email/components`                                            | 1                                                                   |
+| Markdown display   | `react-markdown`                                                     | 10                                                                  |
+| Unit tests         | `vitest`                                                             | 5                                                                   |
+| Test coverage      | `@vitest/coverage-v8`                                                | same as vitest                                                      |
+| DB for tests       | `mongodb-memory-server`                                              | 11                                                                  |
+| E2E tests          | `@playwright/test`                                                   | 1                                                                   |
+| Lint / format      | `eslint` (Next.js config), `prettier`, `prettier-plugin-tailwindcss` | —                                                                   |
 
 **This is the complete list of allowed packages.** Adding any other package requires a decision in `01-decisions.md` first.
 Not allowed, for example: UI kits, form libraries, state managers (Redux, Zustand), `axios`, `lodash`, `moment`, `date-fns`.
@@ -139,17 +139,17 @@ app/ page.tsx or route.ts         (Next.js)
 
 ### 2.3 What each file may import
 
-| File | May import | Must NOT import |
-|---|---|---|
-| `app/**/page.tsx`, `layout.tsx` | services (to read data), components, `auth/session.ts`, `next/*` | repositories, models, `mongoose` |
-| `app/api/**/route.ts` | one handler/service function, `next/*` | repositories, models, `mongoose` |
-| `*.actions.ts` | own service, own schemas, `auth/session.ts`, `next/cache`, `next/navigation`, `shared/*` | repositories, models |
-| `*.service.ts` | own repository, own mapper, **other features' services**, `shared/*` | **anything from `next/*`**, `auth/session.ts`, other features' repositories or models |
-| `*.repository.ts` | own model, `shared/db/*`, `mongoose` types | `next/*`, services, other features' models |
-| `*.model.ts` | `mongoose`, own constants | anything else |
-| `*.mapper.ts`, `*.schemas.ts`, `*.types.ts`, `*.constants.ts` | `zod`, own constants/types, `shared/lib` | services, repositories, models, `next/*` |
-| `components/**` | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/layout`, `shared/lib` | services, repositories, models |
-| `shared/**` | other `shared/*` | anything in `features/` |
+| File                                                          | May import                                                                                                                   | Must NOT import                                                                       |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `app/**/page.tsx`, `layout.tsx`                               | services (to read data), components, `auth/session.ts`, `next/*`                                                             | repositories, models, `mongoose`                                                      |
+| `app/api/**/route.ts`                                         | one handler/service function, `next/*`                                                                                       | repositories, models, `mongoose`                                                      |
+| `*.actions.ts`                                                | own service, own schemas, `auth/session.ts`, `next/cache`, `next/navigation`, `shared/*`                                     | repositories, models                                                                  |
+| `*.service.ts`                                                | own repository, own mapper, **other features' services**, `shared/*`                                                         | **anything from `next/*`**, `auth/session.ts`, other features' repositories or models |
+| `*.repository.ts`                                             | own model, `shared/db/*`, `mongoose` types                                                                                   | `next/*`, services, other features' models                                            |
+| `*.model.ts`                                                  | `mongoose`, own constants                                                                                                    | anything else                                                                         |
+| `*.mapper.ts`, `*.schemas.ts`, `*.types.ts`, `*.constants.ts` | `zod`, own constants/types, `shared/lib`                                                                                     | services, repositories, models, `next/*`                                              |
+| `components/**`                                               | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/layout`, `shared/lib` | services, repositories, models                                                        |
+| `shared/**`                                                   | other `shared/*`                                                                                                             | anything in `features/`                                                               |
 
 The three most important rules:
 
@@ -200,7 +200,7 @@ These apply to every file (D-089).
    A plain `for` loop or `if` is fine.
 6. **Rule of three.** Do not create a shared helper or abstraction until the same code is needed in 3 places.
    Repeating 5 lines twice is fine.
-7. **Comments explain *why*, not *what*.** Every exported function in a service or repository has a one-line comment
+7. **Comments explain _why_, not _what_.** Every exported function in a service or repository has a one-line comment
    saying what it does. Do not comment obvious lines.
 8. **Exported functions declare their return type.**
 9. **No magic numbers or strings.** Limits and enum values live in `<feature>.constants.ts` or `shared/lib`.
@@ -216,20 +216,20 @@ These apply to every file (D-089).
 
 ## 4. Naming
 
-| Thing | Rule | Example |
-|---|---|---|
-| Feature folders | plural, kebab-case | `features/themes/`, `features/ownerships/` |
-| Feature files | `<singular>.<kind>.ts` | `theme.service.ts`, `version.repository.ts` |
-| Other folders | kebab-case | `forgot-password/` |
-| React component files | PascalCase, one component per file | `ThemeCard.tsx` |
-| Tests | next to the file, `.test.ts` | `theme.service.test.ts` |
-| Functions | camelCase, start with a verb | `getPublishedThemes`, `createThemeVersion` |
-| Server actions | camelCase + `Action` | `createThemeAction` |
-| Zod schemas | camelCase + `Schema` | `createThemeSchema` |
-| Types from zod | PascalCase + `Input` | `CreateThemeInput` |
-| Database record types | PascalCase + `Record` | `ThemeRecord` |
-| DTO types | PascalCase + `DTO` | `ThemeCardDTO` |
-| Constants | UPPER_SNAKE_CASE | `MAX_THEME_IMAGES` |
+| Thing                 | Rule                               | Example                                     |
+| --------------------- | ---------------------------------- | ------------------------------------------- |
+| Feature folders       | plural, kebab-case                 | `features/themes/`, `features/ownerships/`  |
+| Feature files         | `<singular>.<kind>.ts`             | `theme.service.ts`, `version.repository.ts` |
+| Other folders         | kebab-case                         | `forgot-password/`                          |
+| React component files | PascalCase, one component per file | `ThemeCard.tsx`                             |
+| Tests                 | next to the file, `.test.ts`       | `theme.service.test.ts`                     |
+| Functions             | camelCase, start with a verb       | `getPublishedThemes`, `createThemeVersion`  |
+| Server actions        | camelCase + `Action`               | `createThemeAction`                         |
+| Zod schemas           | camelCase + `Schema`               | `createThemeSchema`                         |
+| Types from zod        | PascalCase + `Input`               | `CreateThemeInput`                          |
+| Database record types | PascalCase + `Record`              | `ThemeRecord`                               |
+| DTO types             | PascalCase + `DTO`                 | `ThemeCardDTO`                              |
+| Constants             | UPPER_SNAKE_CASE                   | `MAX_THEME_IMAGES`                          |
 
 ---
 
@@ -333,12 +333,12 @@ No internal REST API for reading data. Pages call services directly.
 
 Only these four exist. Each one calls a single function from a feature and nothing else.
 
-| Route | Calls |
-|---|---|
-| `api/auth/[...all]` | Better Auth handler from `features/auth/auth.ts` |
-| `api/webhooks/polar` | `features/payments/payment.webhook.ts` (`06-payments.md`) |
-| `api/downloads/[versionId]` | `getCurrentUser()` then `createDownloadLink()` from `features/downloads/download.service.ts` (exact code in `07-delivery-updates.md` section 7) |
-| `api/cron/process-notifications` | `features/notifications/notification-job.processor.ts` (`09-emails.md`), protected by `CRON_SECRET` |
+| Route                            | Calls                                                                                                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/auth/[...all]`              | Better Auth handler from `features/auth/auth.ts`                                                                                                |
+| `api/webhooks/polar`             | `features/payments/payment.webhook.ts` (`06-payments.md`)                                                                                       |
+| `api/downloads/[versionId]`      | `getCurrentUser()` then `createDownloadLink()` from `features/downloads/download.service.ts` (exact code in `07-delivery-updates.md` section 7) |
+| `api/cron/process-notifications` | `features/notifications/notification-job.processor.ts` (`09-emails.md`), protected by `CRON_SECRET`                                             |
 
 Do not add route handlers for anything else. Forms use server actions.
 
@@ -350,8 +350,7 @@ Do not add route handlers for anything else. Forms use server actions.
 
 ```ts
 export type ActionResult<T = undefined> =
-  | { ok: true; data: T; message?: string }
-  | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
+  { ok: true; data: T; message?: string } | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 ```
 
 - `error` is a sentence the user can read.
@@ -365,7 +364,10 @@ export const APP_ERROR_CODES = ["NOT_FOUND", "FORBIDDEN", "CONFLICT", "INVALID",
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
 
 export class AppError extends Error {
-  constructor(public code: AppErrorCode, message: string) {
+  constructor(
+    public code: AppErrorCode,
+    message: string,
+  ) {
     super(message);
     this.name = "AppError";
   }
@@ -406,14 +408,15 @@ export class AppError extends Error {
 - Session helpers are in `features/auth/session.ts`. This file uses Next.js (`headers()`, `redirect()`), so only
   pages, layouts, actions and route handlers may import it — **never services**.
 
-| Helper | Returns | When there is no valid user |
-|---|---|---|
-| `getCurrentUser()` | `CurrentUser \| null` | returns `null` |
-| `requireUser()` | `CurrentUser` | `redirect("/login?next=<current path>")` |
-| `requireVerifiedUser()` | `CurrentUser` | not logged in → like `requireUser`; not verified → `redirect("/verify-email")` |
-| `requireAdmin()` | `CurrentUser` | `notFound()` — the admin area must look like it does not exist |
+| Helper                  | Returns               | When there is no valid user                                                    |
+| ----------------------- | --------------------- | ------------------------------------------------------------------------------ |
+| `getCurrentUser()`      | `CurrentUser \| null` | returns `null`                                                                 |
+| `requireUser()`         | `CurrentUser`         | `redirect("/login?next=<current path>")`                                       |
+| `requireVerifiedUser()` | `CurrentUser`         | not logged in → like `requireUser`; not verified → `redirect("/verify-email")` |
+| `requireAdmin()`        | `CurrentUser`         | `notFound()` — the admin area must look like it does not exist                 |
 
-  `CurrentUser` = `{ id: string; name: string; email: string; emailVerified: boolean; isAdmin: boolean; country: string | null }`.
+`CurrentUser` = `{ id: string; name: string; email: string; emailVerified: boolean; isAdmin: boolean; country: string | null }`.
+
 - A user with `disabled: true` is treated as **not logged in** by every helper (extra safety on top of the
   Better Auth hook, D-121). The login form shows: `"This account has been disabled. Contact support if you think this is a mistake."`
 - `isAdmin` = the user's email (lowercased) is in `env.ADMIN_EMAILS`.
@@ -429,12 +432,12 @@ No feature file, service or test changes, so the logic cannot break.
 
 ### 9.1 The four layers
 
-| Layer | Where | What it contains | Changed by a redesign? |
-|---|---|---|---|
-| 1. Design tokens | `src/styles/tokens.css` | Every color, font, radius and shadow, as CSS variables with **meaning-based names** | **Yes** |
-| 2. UI kit | `src/shared/ui/` | Small components that own all visual classes: `Button`, `Input`, `Text`, `Heading`, `Card`, `Badge`, `Alert`, `Table`, ... | **Yes** |
-| 3. Layouts | `src/shared/layout/` | Page frames: `StoreHeader`, `StoreFooter`, `AccountShell`, `AdminShell`, `PageContainer`, `Stack`, `Grid`, `Section` | **Yes** |
-| 4. Feature components | `src/features/*/components/` | Put UI kit + layouts together and show data. **Only layout classes.** | No |
+| Layer                 | Where                        | What it contains                                                                                                           | Changed by a redesign? |
+| --------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1. Design tokens      | `src/styles/tokens.css`      | Every color, font, radius and shadow, as CSS variables with **meaning-based names**                                        | **Yes**                |
+| 2. UI kit             | `src/shared/ui/`             | Small components that own all visual classes: `Button`, `Input`, `Text`, `Heading`, `Card`, `Badge`, `Alert`, `Table`, ... | **Yes**                |
+| 3. Layouts            | `src/shared/layout/`         | Page frames: `StoreHeader`, `StoreFooter`, `AccountShell`, `AdminShell`, `PageContainer`, `Stack`, `Grid`, `Section`       | **Yes**                |
+| 4. Feature components | `src/features/*/components/` | Put UI kit + layouts together and show data. **Only layout classes.**                                                      | No                     |
 
 ### 9.2 Design tokens
 
@@ -473,14 +476,14 @@ No feature file, service or test changes, so the logic cannot break.
 
 Only these Tailwind classes (and their `sm:`, `md:`, `lg:`, `xl:` versions) are allowed in `features/**` and `app/**`:
 
-| Group | Allowed class prefixes |
-|---|---|
-| Display | `flex`, `inline-flex`, `grid`, `block`, `inline-block`, `hidden`, `contents` |
+| Group       | Allowed class prefixes                                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Display     | `flex`, `inline-flex`, `grid`, `block`, `inline-block`, `hidden`, `contents`                                                                          |
 | Flex / grid | `flex-`, `grid-cols-`, `col-span-`, `row-span-`, `items-`, `justify-`, `self-`, `place-`, `order-`, `gap-`, `space-x-`, `space-y-`, `shrink-`, `grow` |
-| Size | `w-`, `min-w-`, `max-w-`, `h-`, `min-h-`, `max-h-`, `size-`, `aspect-` |
-| Spacing | `p-`, `px-`, `py-`, `pt-`, `pb-`, `pl-`, `pr-`, `m-`, `mx-`, `my-`, `mt-`, `mb-`, `ml-`, `mr-` |
-| Position | `relative`, `absolute`, `sticky`, `fixed`, `inset-`, `top-`, `bottom-`, `left-`, `right-`, `z-` |
-| Other | `overflow-`, `truncate`, `line-clamp-`, `sr-only` |
+| Size        | `w-`, `min-w-`, `max-w-`, `h-`, `min-h-`, `max-h-`, `size-`, `aspect-`                                                                                |
+| Spacing     | `p-`, `px-`, `py-`, `pt-`, `pb-`, `pl-`, `pr-`, `m-`, `mx-`, `my-`, `mt-`, `mb-`, `ml-`, `mr-`                                                        |
+| Position    | `relative`, `absolute`, `sticky`, `fixed`, `inset-`, `top-`, `bottom-`, `left-`, `right-`, `z-`                                                       |
+| Other       | `overflow-`, `truncate`, `line-clamp-`, `sr-only`                                                                                                     |
 
 **Everything else is forbidden** in features and pages: colors (`bg-`, `text-`, `border-` colors), font and text size
 (`text-sm`, `font-bold`), `rounded`, `shadow`, `opacity`, `transition`, `hover:` and other state styles.
@@ -523,31 +526,32 @@ May change only: `src/styles/tokens.css`, `src/shared/ui/**`, `src/shared/layout
 All are read and validated in `shared/config/env.ts` with zod at startup. If one is missing or invalid, the app
 fails to start with a clear message. `.env.example` lists every one of them.
 
-| Name | Example | Notes |
-|---|---|---|
-| `APP_URL` | `https://example.com` | Public base URL, no trailing slash. Used in emails and redirects. |
-| `MONGODB_URI` | `mongodb+srv://...` | |
-| `BETTER_AUTH_SECRET` | 32+ random chars | |
-| `BETTER_AUTH_URL` | same as `APP_URL` | Required by Better Auth. |
-| `GOOGLE_CLIENT_ID` | | |
-| `GOOGLE_CLIENT_SECRET` | | |
-| `ADMIN_EMAILS` | `owner@example.com,other@example.com` | Comma separated, case-insensitive. |
-| `POLAR_ACCESS_TOKEN` | | |
-| `POLAR_WEBHOOK_SECRET` | | |
-| `POLAR_SERVER` | `sandbox` or `production` | |
-| `S3_ENDPOINT` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | Required. Cloudflare R2 (D-054). Local: `http://localhost:9000` (MinIO). Setup: `07-delivery-updates.md` sections 9–10. |
-| `S3_REGION` | `auto` | Always `auto` for R2. Local MinIO: `us-east-1`. |
-| `S3_ACCESS_KEY_ID` | | |
-| `S3_SECRET_ACCESS_KEY` | | |
-| `S3_FORCE_PATH_STYLE` | `false` | `false` for R2. `true` for MinIO. |
-| `S3_PRIVATE_BUCKET` | `store-files` | Theme zips and wallet proof screenshots. |
-| `S3_PUBLIC_BUCKET` | `store-images` | Theme images. |
-| `PUBLIC_IMAGES_BASE_URL` | `https://images.example.com` | Image URL = this + `/` + key. Also read by `next.config.ts` for `images.remotePatterns`. |
-| `RESEND_API_KEY` | | |
-| `EMAIL_FROM` | `Store <hello@example.com>` | |
-| `SUPPORT_EMAIL` | `support@example.com` | Shown on Contact page and in emails. |
-| `CRON_SECRET` | 32+ random chars | Sent by the server cron as `Authorization: Bearer <secret>`. |
-| `PAYMENT_PROVIDER` | `polar` or `fake` | `fake` only for local development and E2E; refused when `NODE_ENV=production` (D-133). |
+| Name                     | Example                                         | Notes                                                                                                                   |
+| ------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `APP_URL`                | `https://example.com`                           | Public base URL, no trailing slash. Used in emails and redirects.                                                       |
+| `MONGODB_URI`            | `mongodb+srv://...`                             |                                                                                                                         |
+| `BETTER_AUTH_SECRET`     | 32+ random chars                                |                                                                                                                         |
+| `BETTER_AUTH_URL`        | same as `APP_URL`                               | Required by Better Auth.                                                                                                |
+| `GOOGLE_CLIENT_ID`       |                                                 |                                                                                                                         |
+| `GOOGLE_CLIENT_SECRET`   |                                                 |                                                                                                                         |
+| `ADMIN_EMAILS`           | `owner@example.com,other@example.com`           | Comma separated, case-insensitive.                                                                                      |
+| `POLAR_ACCESS_TOKEN`     |                                                 |                                                                                                                         |
+| `POLAR_WEBHOOK_SECRET`   |                                                 |                                                                                                                         |
+| `POLAR_SERVER`           | `sandbox` or `production`                       |                                                                                                                         |
+| `S3_ENDPOINT`            | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | Required. Cloudflare R2 (D-054). Local: `http://localhost:9000` (MinIO). Setup: `07-delivery-updates.md` sections 9–10. |
+| `S3_REGION`              | `auto`                                          | Always `auto` for R2. Local MinIO: `us-east-1`.                                                                         |
+| `S3_ACCESS_KEY_ID`       |                                                 |                                                                                                                         |
+| `S3_SECRET_ACCESS_KEY`   |                                                 |                                                                                                                         |
+| `S3_FORCE_PATH_STYLE`    | `false`                                         | `false` for R2. `true` for MinIO.                                                                                       |
+| `S3_PRIVATE_BUCKET`      | `store-files`                                   | Theme zips and wallet proof screenshots.                                                                                |
+| `S3_PUBLIC_BUCKET`       | `store-images`                                  | Theme images.                                                                                                           |
+| `PUBLIC_IMAGES_BASE_URL` | `https://images.example.com`                    | Image URL = this + `/` + key. Also read by `next.config.ts` for `images.remotePatterns`.                                |
+| `RESEND_API_KEY`         |                                                 |                                                                                                                         |
+| `EMAIL_TRANSPORT`        | `resend` or `console`                           | `console` only for local development and E2E; refused when `NODE_ENV=production` (D-119).                               |
+| `EMAIL_FROM`             | `Store <hello@example.com>`                     |                                                                                                                         |
+| `SUPPORT_EMAIL`          | `support@example.com`                           | Shown on Contact page and in emails.                                                                                    |
+| `CRON_SECRET`            | 32+ random chars                                | Sent by the server cron as `Authorization: Bearer <secret>`.                                                            |
+| `PAYMENT_PROVIDER`       | `polar` or `fake`                               | `fake` only for local development and E2E; refused when `NODE_ENV=production` (D-133).                                  |
 
 Adding an env variable = update `env.ts`, `.env.example`, and this table in the same PR, and only if the task says so.
 
@@ -559,17 +563,17 @@ Adding an env variable = update `env.ts`, `.env.example`, and this table in the 
 - Payments use the **Polar sandbox** (`POLAR_SERVER=sandbox`). How to receive webhooks locally is in `06-payments.md`.
 - Commands (defined in T-001):
 
-| Command | Does |
-|---|---|
-| `pnpm dev` | Start the dev server |
-| `pnpm build` | Production build |
-| `pnpm lint` | ESLint, zero warnings allowed |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Vitest unit + integration tests |
+| Command              | Does                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| `pnpm dev`           | Start the dev server                                        |
+| `pnpm build`         | Production build                                            |
+| `pnpm lint`          | ESLint, zero warnings allowed                               |
+| `pnpm typecheck`     | `tsc --noEmit`                                              |
+| `pnpm test`          | Vitest unit + integration tests                             |
 | `pnpm test:coverage` | Tests with coverage report; fails below the minimum (D-134) |
-| `pnpm check:styles` | Styling rule check (section 9.4) |
-| `pnpm format` | Prettier write |
-| `pnpm e2e` | Playwright tests |
+| `pnpm check:styles`  | Styling rule check (section 9.4)                            |
+| `pnpm format`        | Prettier write                                              |
+| `pnpm e2e`           | Playwright tests                                            |
 
 **Before every commit:** `pnpm lint && pnpm typecheck && pnpm check:styles && pnpm test` must pass.
 

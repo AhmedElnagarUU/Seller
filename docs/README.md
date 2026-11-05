@@ -14,7 +14,7 @@ Code must follow them. If code and docs disagree, the docs win (or the docs get 
 | `06-payments.md` | Card (Polar) + Egyptian wallet payments, coupons, webhooks, refunds | Draft — under review |
 | `07-delivery-updates.md` | File storage (Cloudflare R2), uploads, versions, downloads, R2 + MinIO setup | Draft — under review |
 | `08-admin.md` | Admin panel spec | Not written |
-| `09-emails.md` | Every email and notification job: trigger, subject, content, batching | Not written |
+| `09-emails.md` | Every email and notification job: trigger, subject, content, batching | Draft — under review |
 | `10-testing.md` | Testing rules, fakes, required tests, E2E flows, CI | Draft — under review |
 | `QUESTIONS.md` | Questions raised by agents while implementing | Living file |
 
