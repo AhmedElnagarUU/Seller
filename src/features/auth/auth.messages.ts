@@ -1,0 +1,17 @@
+export const AUTH_MESSAGES = {
+  emailTaken: "An account with this email already exists. Log in instead.",
+  wrongCredentials: "Wrong email or password.",
+  disabled: "This account has been disabled. Contact support if you think this is a mistake.",
+  tooManyAttempts: "Too many attempts. Please wait a minute and try again.",
+  generic: "Something went wrong. Please try again.",
+  resetLinkInvalid: "This reset link is invalid or has expired. Please ask for a new one.",
+  resetEmailSent: "If an account exists for this email, we sent a link to reset your password.",
+  passwordChanged: "Your password was changed. Please log in.",
+  verificationSent: "We sent a new confirmation email.",
+  googleFailed: "Google sign-in failed. Please try again.",
+  invalidName: "Enter your name (2 to 80 characters).",
+  invalidEmail: "Enter a valid email.",
+  invalidPassword: "Use 8 to 128 characters.",
+  passwordsDiffer: "The passwords do not match.",
+  invalidCountry: "Please choose your country.",
+} as const;

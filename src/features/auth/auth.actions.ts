@@ -1,0 +1,104 @@
+"use server";
+
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import type { ActionResult } from "@/shared/types/action";
+import { AppError } from "@/shared/errors";
+import { safeNextPath } from "@/shared/lib/paths";
+import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
+import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from "@/features/auth/auth.schemas";
+import {
+  loginUser,
+  logoutUser,
+  registerUser,
+  requestPasswordReset,
+  resendVerificationEmail,
+  resetPassword,
+} from "@/features/auth/auth.service";
+import { requireUser } from "@/features/auth/session";
+
+function readText(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
+// Turns a zod error into an ActionResult. The top message is the first field message.
+function validationFailure(error: z.ZodError): ActionResult {
+  const fieldErrors: Record<string, string[]> = z.flattenError(error).fieldErrors;
+  const firstMessage = Object.values(fieldErrors).flat()[0] ?? AUTH_MESSAGES.generic;
+  return { ok: false, error: firstMessage, fieldErrors };
+}
+
+function failureFrom(error: unknown, actionName: string): ActionResult {
+  if (error instanceof AppError) return { ok: false, error: error.message };
+  console.error(`${actionName} failed`, error);
+  return { ok: false, error: AUTH_MESSAGES.generic };
+}
+
+export async function registerAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const parsed = registerSchema.safeParse({
+    name: readText(formData, "name"),
+    email: readText(formData, "email"),
+    password: readText(formData, "password"),
+    country: readText(formData, "country"),
+  });
+  if (!parsed.success) return validationFailure(parsed.error);
+  try {
+    await registerUser(parsed.data, await headers());
+  } catch (error) {
+    return failureFrom(error, "registerAction");
+  }
+  redirect("/verify-email");
+}
+
+export async function loginAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const parsed = loginSchema.safeParse({
+    email: readText(formData, "email"),
+    password: readText(formData, "password"),
+  });
+  if (!parsed.success) return validationFailure(parsed.error);
+  try {
+    await loginUser(parsed.data, await headers());
+  } catch (error) {
+    return failureFrom(error, "loginAction");
+  }
+  redirect(safeNextPath(readText(formData, "next")));
+}
+
+export async function logoutAction(): Promise<void> {
+  await logoutUser(await headers());
+  redirect("/");
+}
+
+export async function forgotPasswordAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const parsed = forgotPasswordSchema.safeParse({ email: readText(formData, "email") });
+  if (!parsed.success) return validationFailure(parsed.error);
+  await requestPasswordReset(parsed.data.email, await headers());
+  return { ok: true, data: undefined, message: AUTH_MESSAGES.resetEmailSent };
+}
+
+export async function resetPasswordAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const parsed = resetPasswordSchema.safeParse({
+    token: readText(formData, "token"),
+    password: readText(formData, "password"),
+    confirmPassword: readText(formData, "confirmPassword"),
+  });
+  if (!parsed.success) return validationFailure(parsed.error);
+  try {
+    await resetPassword(parsed.data.token, parsed.data.password, await headers());
+  } catch (error) {
+    return failureFrom(error, "resetPasswordAction");
+  }
+  redirect("/login?reset=1");
+}
+
+export async function resendVerificationAction(): Promise<ActionResult> {
+  const user = await requireUser("/verify-email");
+  try {
+    await resendVerificationEmail(user.email, await headers());
+  } catch (error) {
+    return failureFrom(error, "resendVerificationAction");
+  }
+  return { ok: true, data: undefined, message: AUTH_MESSAGES.verificationSent };
+}

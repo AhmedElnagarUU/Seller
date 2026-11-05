@@ -53,3 +53,21 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: ANSWERED
 - Answer: Planner error. The page is guarded by a new env flag `ENABLE_DEV_PAGES` (default false; true in .env.example and CI). Implemented by the planner.
 - Doc updated: docs/02-architecture.md section 10, tasks/T-002-ui-kit.md
+
+### Q-005: EMAIL_TRANSPORT=console is refused by the production build that e2e uses
+- Task: T-003
+- Asked by: Claude (implementing agent)
+- Question: `env.ts` must refuse `EMAIL_TRANSPORT=console` when `NODE_ENV=production` (D-119), but `playwright.config.ts` runs `pnpm build && pnpm start`, which is `NODE_ENV=production`. So `pnpm e2e` fails at `next build` with "Invalid or missing environment variables: EMAIL_TRANSPORT" (same kind of problem as Q-004). I implemented the rule as specified and ran the e2e locally with `NODE_ENV=test pnpm e2e`.
+- Options I see: A) the e2e command sets `NODE_ENV=test` (`package.json` script or `webServer.env`). B) a dedicated flag (like `ENABLE_DEV_PAGES`) that allows `console` in the e2e build. C) e2e runs a real `resend` transport against a local fake (not possible without network).
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-006: requireUser() cannot know the current path
+- Task: T-003
+- Asked by: Claude (implementing agent)
+- Question: `02-architecture.md` section 8 says `requireUser()` redirects to `/login?next=<current path>`, but a server component cannot read its own path (no middleware is allowed, and Next.js gives no pathname). I gave the helpers an optional parameter: `requireUser(currentPath = "/")` and `requireVerifiedUser(currentPath = "/")`; pages pass their own path (`requireUser("/account")`).
+- Options I see: A) keep the parameter (current). B) allow a small `x-pathname` header set by a proxy file. C) each page checks `getCurrentUser()` and redirects itself.
+- Status: OPEN
+- Answer:
+- Doc updated:
