@@ -14,7 +14,7 @@ no test, because it gives false confidence. Every rule below exists to prevent s
 |---|---|---|---|
 | **Unit** | Pure functions: `shared/lib/*`, `*.schemas.ts`, `*.mapper.ts` | Vitest | next to the file: `money.test.ts` |
 | **Integration** | Service functions with a **real** MongoDB (in memory): rules, DB writes, transactions | Vitest + `mongodb-memory-server` (replica set) | `theme.service.test.ts` |
-| **Handler** | Route handlers: webhook with a real signature, cron auth, download redirect | Vitest (call the exported `POST`/`GET` with a `Request`) | `payment.webhook.test.ts` |
+| **Handler** | Route handlers: webhook with a real signature, cron auth | Vitest (call the exported `POST`/`GET` with a `Request`) | `payment.webhook.test.ts` |
 | **E2E** | Main user flows in a real browser against the running app | Playwright | `e2e/*.spec.ts` |
 
 Most tests are **integration** tests. They give the most protection for the least effort, because they test the
@@ -76,7 +76,7 @@ Real classes in `src/shared/test/fakes/` that behave like the real thing, with n
 | Fake | Replaces | Behaviour | What tests can read |
 |---|---|---|---|
 | `FakePaymentProvider` | `getPaymentProvider()` | Same as the fake provider in `06-payments.md` section 8; can be told to fail the next call | `calls` (every call with its input) |
-| `FakeStorage` | `shared/storage/s3.ts` | Keeps objects in a `Map`; presigned URLs are fake strings; `headObject` returns stored metadata | `objects` |
+| `FakeStorage` | `shared/storage/s3.ts` | Same exports as `s3.ts` (`07-delivery-updates.md` 2.1). Keeps objects in a `Map`; presigned URLs are fake strings that contain the key (and the download file name); `headObject` returns stored metadata; `hashObject` computes the real SHA-256; extra `putTestObject({ bucket, key, contentType, body })` for tests | `objects` |
 | `FakeEmailSender` | `features/emails/email.sender.ts` | Stores every email instead of sending | `sent` (to, subject, template name, data) |
 
 Checking a fake's recorded calls is allowed **in addition** to checking the database, never instead of it.

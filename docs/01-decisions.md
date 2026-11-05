@@ -108,9 +108,15 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-048 | Hosting: the owner's existing **DigitalOcean VPS**. Details (Docker or not, reverse proxy, process manager) are decided later in a deployment doc. | LOCKED (details OPEN) |
 | D-049 | Theme `.zip` files are stored in **private** object storage and downloaded through short-lived signed URLs. They are never public and never served from the Next.js `public/` folder. | LOCKED |
 | D-050 | Database hosting: **MongoDB Atlas**. | LOCKED |
-| D-051 | File storage uses the **standard S3 API** (`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`). The provider (Amazon S3, DigitalOcean Spaces, Cloudflare R2…) is chosen **only by environment variables** (endpoint, region, keys, bucket names). No provider-specific code. The actual provider is picked at deployment. | LOCKED |
-| D-052 | Two buckets: a **private** bucket for `.zip` files and a **public** bucket for theme images. Public access is set by bucket policy, not per-object ACLs. | LOCKED |
+| D-051 | File storage uses the **standard S3 API** (`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`). The provider (Amazon S3, DigitalOcean Spaces, Cloudflare R2…) is chosen **only by environment variables** (endpoint, region, keys, bucket names). No provider-specific code. The provider is **Cloudflare R2** (D-054). | LOCKED |
+| D-052 | Two buckets: a **private** bucket for `.zip` files and a **public** bucket for theme images. Public access is set by bucket policy, not per-object ACLs. | REPLACED by D-055 |
 | D-053 | The database stores **object keys** (e.g. `themes/abc/images/x.webp`), never full file URLs. URLs are built at runtime from an env variable, so changing provider or CDN needs no database change. | LOCKED |
+| D-054 | Storage provider: **Cloudflare R2** for production and staging (no egress fees, so downloads cost nothing). **MinIO** in local development, E2E and CI. Setup in `07-delivery-updates.md` section 9. | LOCKED |
+| D-055 | Two buckets: a **private** bucket (theme `.zip` files, wallet proof screenshots) and a **public** bucket (theme images). The public bucket is made public at the **bucket level** (R2 custom domain; MinIO anonymous read). Code never sets ACLs. | LOCKED |
+| D-056 | Every upload goes **directly from the browser to storage** with a presigned PUT URL. Files never pass through the Next.js server. The server checks the stored object (HEAD, and for zips a SHA-256 read) before saving anything in the database. | DEFAULT |
+| D-057 | Download limit: **30 downloads per user per rolling 60 minutes**. | DEFAULT |
+| D-058 | Theme images are stored **as uploaded** (no resizing on our side). Allowed: JPG, PNG, WebP, max 3 MB, 400–6000 px on each side. `next/image` makes the smaller sizes. | DEFAULT |
+| D-059 | Uploaded files that never got saved to the database (the admin closed the form) stay in storage. No clean-up job in the MVP; the cost is negligible. | DEFAULT |
 
 ## Code structure
 
@@ -156,4 +162,4 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 
 | ID | Question | Planner's recommendation |
 |---|---|---|
-| O-003 | Store domain name and demo domain name? | Owner does not have one yet. Code must read the site URL from an env variable, never hard-code it. |
+| O-003 | Store domain name and demo domain name? | Owner does not have one yet. Code must read the site URL from an env variable, never hard-code it. **Buy the domain at Cloudflare (or move its DNS to Cloudflare)**: the R2 public images bucket needs a custom domain such as `images.<domain>` (D-054). Until then, staging may use the bucket's `r2.dev` URL. |

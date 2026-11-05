@@ -183,7 +183,7 @@ One WordPress theme for sale.
 
 | Field | Type | Rules |
 |---|---|---|
-| `key` | string | Object key in the **public** bucket (`07-delivery-updates.md`). |
+| `key` | string | Object key in the **public** bucket (`07-delivery-updates.md` section 3). Unique inside the theme. |
 | `alt` | string | 0–150 chars. Default `""`. |
 | `width` | number | Integer > 0. |
 | `height` | number | Integer > 0. |
@@ -247,6 +247,7 @@ One uploaded `.zip` of a theme. Never deleted, file never replaced (D-015).
 
 **Indexes**
 - `{ themeId: 1, version: 1 }` unique
+- `{ "file.key": 1 }` unique — one uploaded file belongs to exactly one version (D-015)
 - `{ themeId: 1, releasedAt: -1 }`
 
 **Rules**

@@ -84,7 +84,7 @@ form handling, validation, types and UI — lives in **one folder**. Code used b
       ├─ layout/               StoreHeader, StoreFooter, AccountShell, AdminShell, PageContainer, Stack, Grid
       ├─ lib/                  small pure helpers: money.ts, dates.ts, semver.ts, slug.ts
       ├─ db/                   connect.ts, ids.ts, transaction.ts
-      ├─ storage/              s3.ts (the only place that uses @aws-sdk)
+      ├─ storage/              s3.ts (the only place that uses @aws-sdk), keys.ts, public-url.ts, upload-file.ts (07-delivery-updates.md)
       ├─ config/env.ts         reads + validates ALL environment variables
       ├─ errors.ts             AppError
       ├─ types/                ActionResult and other shared types
@@ -337,7 +337,7 @@ Only these four exist. Each one calls a single function from a feature and nothi
 |---|---|
 | `api/auth/[...all]` | Better Auth handler from `features/auth/auth.ts` |
 | `api/webhooks/polar` | `features/payments/payment.webhook.ts` (`06-payments.md`) |
-| `api/downloads/[versionId]` | `features/downloads/download.service.ts` (`07-delivery-updates.md`) |
+| `api/downloads/[versionId]` | `getCurrentUser()` then `createDownloadLink()` from `features/downloads/download.service.ts` (exact code in `07-delivery-updates.md` section 7) |
 | `api/cron/process-notifications` | `features/notifications/notification-job.processor.ts` (`09-emails.md`), protected by `CRON_SECRET` |
 
 Do not add route handlers for anything else. Forms use server actions.
@@ -535,14 +535,14 @@ fails to start with a clear message. `.env.example` lists every one of them.
 | `POLAR_ACCESS_TOKEN` | | |
 | `POLAR_WEBHOOK_SECRET` | | |
 | `POLAR_SERVER` | `sandbox` or `production` | |
-| `S3_ENDPOINT` | `https://fra1.digitaloceanspaces.com` | Empty for Amazon S3. |
-| `S3_REGION` | `fra1` / `us-east-1` | |
+| `S3_ENDPOINT` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | Required. Cloudflare R2 (D-054). Local: `http://localhost:9000` (MinIO). Setup: `07-delivery-updates.md` sections 9–10. |
+| `S3_REGION` | `auto` | Always `auto` for R2. Local MinIO: `us-east-1`. |
 | `S3_ACCESS_KEY_ID` | | |
 | `S3_SECRET_ACCESS_KEY` | | |
-| `S3_FORCE_PATH_STYLE` | `false` | `true` for MinIO in local development. |
-| `S3_PRIVATE_BUCKET` | `store-files` | Theme zips. |
+| `S3_FORCE_PATH_STYLE` | `false` | `false` for R2. `true` for MinIO. |
+| `S3_PRIVATE_BUCKET` | `store-files` | Theme zips and wallet proof screenshots. |
 | `S3_PUBLIC_BUCKET` | `store-images` | Theme images. |
-| `PUBLIC_IMAGES_BASE_URL` | `https://store-images.fra1.digitaloceanspaces.com` | Image URL = this + `/` + key. Also read by `next.config.ts` for `images.remotePatterns`. |
+| `PUBLIC_IMAGES_BASE_URL` | `https://images.example.com` | Image URL = this + `/` + key. Also read by `next.config.ts` for `images.remotePatterns`. |
 | `RESEND_API_KEY` | | |
 | `EMAIL_FROM` | `Store <hello@example.com>` | |
 | `SUPPORT_EMAIL` | `support@example.com` | Shown on Contact page and in emails. |
@@ -555,7 +555,7 @@ Adding an env variable = update `env.ts`, `.env.example`, and this table in the 
 
 ## 11. Local development
 
-- `docker compose up -d` starts MongoDB as a **single-node replica set** (needed for transactions) and MinIO (a local S3).
+- `docker compose up -d` starts MongoDB as a **single-node replica set** (needed for transactions) and MinIO (a local S3, with both buckets created automatically — `07-delivery-updates.md` section 10).
 - Payments use the **Polar sandbox** (`POLAR_SERVER=sandbox`). How to receive webhooks locally is in `06-payments.md`.
 - Commands (defined in T-001):
 
