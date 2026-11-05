@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: http://localhost:3000
+      MONGODB_URI: mongodb://localhost:27017/themestore?replicaSet=rs0&directConnection=true
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_FORCE_PATH_STYLE: "true"
+      S3_PRIVATE_BUCKET: store-files
+      S3_PUBLIC_BUCKET: store-images
+      PUBLIC_IMAGES_BASE_URL: http://localhost:9000/store-images
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm check:styles
+      - run: pnpm check:focused
+      - run: pnpm test:coverage
+      - run: pnpm build
+      - run: docker compose up -d --wait
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
