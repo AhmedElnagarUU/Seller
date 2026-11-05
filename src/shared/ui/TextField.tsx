@@ -13,6 +13,8 @@ type TextFieldProps = {
   hint?: string;
   errors?: string[];
   id?: string;
+  step?: string;
+  inputMode?: "text" | "decimal" | "numeric" | "email";
 };
 
 const INPUT_CLASSES =
@@ -29,6 +31,8 @@ export function TextField({
   hint,
   errors = [],
   id,
+  step,
+  inputMode,
 }: TextFieldProps) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
@@ -46,6 +50,8 @@ export function TextField({
         id={fieldId}
         name={name}
         type={type}
+        step={step}
+        inputMode={inputMode}
         defaultValue={defaultValue}
         placeholder={placeholder}
         required={required}

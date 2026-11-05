@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { formKey, submittedValue } from "@/shared/lib/action-result";
 import { Grid } from "@/shared/layout/Grid";
 import { Stack } from "@/shared/layout/Stack";
 import { Alert } from "@/shared/ui/Alert";
@@ -33,13 +34,22 @@ export function ThemeForm({ theme, categoryOptions }: ThemeFormProps) {
   // The slug is part of the theme's web address, so it is fixed after the first publish (D-017).
   const isSlugLocked = theme?.publishedAt !== null && theme?.publishedAt !== undefined;
 
+  // What the user typed before an error, otherwise the saved value.
+  const valueOf = (key: string, initial: string): string => submittedValue(state, key, initial);
+
   return (
-    <form action={formAction} noValidate>
+    <form key={formKey(state)} action={formAction}>
       <Stack>
         {state?.ok ? <Alert tone="success">{state.message}</Alert> : null}
         <FormError message={formError} />
         {theme ? <input type="hidden" name="id" value={theme.id} /> : null}
-        <TextField label="Name" name="name" defaultValue={theme?.name} required errors={fieldErrors?.name} />
+        <TextField
+          label="Name"
+          name="name"
+          defaultValue={valueOf("name", theme?.name ?? "")}
+          required
+          errors={fieldErrors?.name}
+        />
         {isSlugLocked ? (
           <Stack gap="xs">
             <input type="hidden" name="slug" value={theme?.slug} />
@@ -52,12 +62,18 @@ export function ThemeForm({ theme, categoryOptions }: ThemeFormProps) {
             </Text>
           </Stack>
         ) : (
-          <TextField label="Slug" name="slug" defaultValue={theme?.slug} required errors={fieldErrors?.slug} />
+          <TextField
+            label="Slug"
+            name="slug"
+            defaultValue={valueOf("slug", theme?.slug ?? "")}
+            required
+            errors={fieldErrors?.slug}
+          />
         )}
         <TextField
           label="Tagline"
           name="tagline"
-          defaultValue={theme?.tagline}
+          defaultValue={valueOf("tagline", theme?.tagline ?? "")}
           required
           errors={fieldErrors?.tagline}
         />
@@ -65,7 +81,7 @@ export function ThemeForm({ theme, categoryOptions }: ThemeFormProps) {
           label="Category"
           name="categoryId"
           options={categoryOptions}
-          defaultValue={theme?.categoryId}
+          defaultValue={valueOf("categoryId", theme?.categoryId ?? "")}
           placeholder="Choose a category"
           required
           errors={fieldErrors?.categoryId}
@@ -74,7 +90,9 @@ export function ThemeForm({ theme, categoryOptions }: ThemeFormProps) {
           label="Price (USD)"
           name="price"
           type="number"
-          defaultValue={theme ? toDollarText(theme.priceCents) : undefined}
+          step="0.01"
+          inputMode="decimal"
+          defaultValue={valueOf("price", theme ? toDollarText(theme.priceCents) : "")}
           required
           errors={fieldErrors?.price}
         />
@@ -82,14 +100,14 @@ export function ThemeForm({ theme, categoryOptions }: ThemeFormProps) {
           label="Demo URL"
           name="demoUrl"
           type="url"
-          defaultValue={theme?.demoUrl ?? ""}
+          defaultValue={valueOf("demoUrl", theme?.demoUrl ?? "")}
           errors={fieldErrors?.demoUrl}
         />
         <TextAreaField
           label="Description"
           name="description"
           rows={12}
-          defaultValue={theme?.description}
+          defaultValue={valueOf("description", theme?.description ?? "")}
           hint="Markdown supported."
           required
           errors={fieldErrors?.description}
@@ -97,33 +115,37 @@ export function ThemeForm({ theme, categoryOptions }: ThemeFormProps) {
         <TextAreaField
           label="Features"
           name="features"
-          defaultValue={theme?.features.join("\n")}
+          defaultValue={valueOf("features", theme?.features.join("\n") ?? "")}
           errors={fieldErrors?.features}
         />
         <Grid columns={3}>
           <TextField
             label="WordPress minimum"
             name="wordpressMin"
-            defaultValue={theme?.wordpressMin}
+            defaultValue={valueOf("wordpressMin", theme?.wordpressMin ?? "")}
             required
             errors={fieldErrors?.wordpressMin}
           />
           <TextField
             label="PHP minimum"
             name="phpMin"
-            defaultValue={theme?.phpMin}
+            defaultValue={valueOf("phpMin", theme?.phpMin ?? "")}
             required
             errors={fieldErrors?.phpMin}
           />
           <TextField
             label="Tested up to"
             name="testedUpTo"
-            defaultValue={theme?.testedUpTo}
+            defaultValue={valueOf("testedUpTo", theme?.testedUpTo ?? "")}
             required
             errors={fieldErrors?.testedUpTo}
           />
         </Grid>
-        <CheckboxField label="Featured on the home page" name="featured" defaultChecked={theme?.featured} />
+        <CheckboxField
+          label="Featured on the home page"
+          name="featured"
+          defaultChecked={valueOf("featured", theme?.featured ? "on" : "") === "on"}
+        />
         <SubmitButton pendingText="Saving…">{theme ? "Save changes" : "Create draft"}</SubmitButton>
       </Stack>
     </form>

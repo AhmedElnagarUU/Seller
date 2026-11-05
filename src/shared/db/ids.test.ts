@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toObjectId } from "@/shared/db/ids";
+import { parseObjectId, toObjectId } from "@/shared/db/ids";
 
 describe("toObjectId", () => {
   it("throws NOT_FOUND for an invalid id", () => {
@@ -11,5 +11,15 @@ describe("toObjectId", () => {
   it("returns an ObjectId for a valid id", () => {
     const validId = "507f1f77bcf86cd799439011";
     expect(toObjectId(validId).toString()).toBe(validId);
+  });
+});
+
+describe("parseObjectId", () => {
+  it("returns null for an invalid id and the ObjectId for a valid one", () => {
+    const validId = "507f1f77bcf86cd799439011";
+
+    expect(parseObjectId("not-an-id")).toBeNull();
+    expect(parseObjectId("abcdefghijkl")).toBeNull();
+    expect(parseObjectId(validId)?.toString()).toBe(validId);
   });
 });

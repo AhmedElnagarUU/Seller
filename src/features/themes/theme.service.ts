@@ -89,8 +89,7 @@ function toTotalPages(total: number): number {
 }
 
 // Creates a draft theme.
-export async function createTheme(input: ThemeInput, adminUserId: string): Promise<{ id: string }> {
-  void adminUserId; // Reserved for the activity log (a later task).
+export async function createTheme(input: ThemeInput): Promise<{ id: string }> {
   await assertCategoryExists(input.categoryId);
   try {
     const created = await themeRepository.insertTheme(toFields(input));
@@ -101,8 +100,7 @@ export async function createTheme(input: ThemeInput, adminUserId: string): Promi
 }
 
 // Changes the editable fields of a theme. Status, images, versions, stats and provider stay as they are.
-export async function updateTheme(id: string, input: ThemeInput, adminUserId: string): Promise<void> {
-  void adminUserId; // Reserved for the activity log (a later task).
+export async function updateTheme(id: string, input: ThemeInput): Promise<void> {
   const theme = await themeRepository.findThemeById(id);
   if (!theme) throw new AppError("NOT_FOUND", "Theme not found.");
   const wasPublished = theme.publishedAt !== null && theme.publishedAt !== undefined;

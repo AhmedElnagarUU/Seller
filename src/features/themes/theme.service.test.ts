@@ -11,7 +11,7 @@ import {
 } from "@/features/themes/theme.service";
 import type { ThemeInput } from "@/features/themes/theme.schemas";
 import { setTestNow } from "@/shared/lib/clock";
-import { createAdmin, createCategory, createTheme as createThemeRow } from "@/shared/test/factories";
+import { createCategory, createTheme as createThemeRow } from "@/shared/test/factories";
 
 async function buildInput(overrides: Partial<ThemeInput> = {}): Promise<ThemeInput> {
   const category = await createCategory();
@@ -38,10 +38,9 @@ function namesOf(items: { name: string }[]): string[] {
 
 describe("createTheme", () => {
   it("saves a draft with price in cents", async () => {
-    const admin = await createAdmin();
     const input = await buildInput();
 
-    const { id } = await createTheme(input, admin._id.toString());
+    const { id } = await createTheme(input);
 
     const saved = await ThemeModel.findById(id).lean();
     expect(saved?.name).toBe("Aurora Blog");
@@ -56,10 +55,9 @@ describe("createTheme", () => {
   });
 
   it("refuses an unknown category", async () => {
-    const admin = await createAdmin();
     const input = await buildInput({ categoryId: "665f1c2e8f1b2c3d4e5f6a7b" });
 
-    await expect(createTheme(input, admin._id.toString())).rejects.toMatchObject({
+    await expect(createTheme(input)).rejects.toMatchObject({
       code: "INVALID",
       message: "Choose a category.",
     });
@@ -68,11 +66,10 @@ describe("createTheme", () => {
   });
 
   it("refuses a used slug", async () => {
-    const admin = await createAdmin();
     await createThemeRow({ slug: "aurora-blog" });
     const input = await buildInput();
 
-    await expect(createTheme(input, admin._id.toString())).rejects.toMatchObject({
+    await expect(createTheme(input)).rejects.toMatchObject({
       code: "CONFLICT",
       message: "This slug is already used.",
     });
@@ -83,11 +80,10 @@ describe("createTheme", () => {
 
 describe("updateTheme", () => {
   it("refuses a slug change after first publish", async () => {
-    const admin = await createAdmin();
     const theme = await createThemeRow({ slug: "aurora-blog", status: "published" });
     const input = await buildInput({ slug: "aurora-new", categoryId: theme.categoryId.toString() });
 
-    await expect(updateTheme(theme._id.toString(), input, admin._id.toString())).rejects.toMatchObject({
+    await expect(updateTheme(theme._id.toString(), input)).rejects.toMatchObject({
       code: "CONFLICT",
       message: "The slug cannot change after the theme was published.",
     });
@@ -97,11 +93,10 @@ describe("updateTheme", () => {
   });
 
   it("allows a slug change on a never-published draft", async () => {
-    const admin = await createAdmin();
     const theme = await createThemeRow({ slug: "aurora-blog" });
     const input = await buildInput({ slug: "aurora-new", categoryId: theme.categoryId.toString() });
 
-    await updateTheme(theme._id.toString(), input, admin._id.toString());
+    await updateTheme(theme._id.toString(), input);
 
     const saved = await ThemeModel.findById(theme._id).lean();
     expect(saved?.slug).toBe("aurora-new");
@@ -109,7 +104,6 @@ describe("updateTheme", () => {
   });
 
   it("does not change status, stats or images", async () => {
-    const admin = await createAdmin();
     const theme = await createThemeRow({
       status: "published",
       stats: { salesCount: 7, downloadCount: 9 },
@@ -117,7 +111,7 @@ describe("updateTheme", () => {
     });
     const input = await buildInput({ slug: theme.slug, categoryId: theme.categoryId.toString(), priceCents: 4900 });
 
-    await updateTheme(theme._id.toString(), input, admin._id.toString());
+    await updateTheme(theme._id.toString(), input);
 
     const saved = await ThemeModel.findById(theme._id).lean();
     expect(saved?.priceCents).toBe(4900);
@@ -127,10 +121,9 @@ describe("updateTheme", () => {
   });
 
   it("refuses an unknown theme", async () => {
-    const admin = await createAdmin();
     const input = await buildInput();
 
-    await expect(updateTheme("665f1c2e8f1b2c3d4e5f6a7b", input, admin._id.toString())).rejects.toMatchObject({
+    await expect(updateTheme("665f1c2e8f1b2c3d4e5f6a7b", input)).rejects.toMatchObject({
       code: "NOT_FOUND",
       message: "Theme not found.",
     });
@@ -341,5 +334,6 @@ describe("getThemeForAdmin", () => {
     expect(found?.featured).toBe(true);
     expect(found?.publishedAt).toBeNull();
     expect(await getThemeForAdmin("665f1c2e8f1b2c3d4e5f6a7b")).toBeNull();
+    expect(await getThemeForAdmin("not-an-id")).toBeNull();
   });
 });

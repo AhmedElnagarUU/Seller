@@ -9,7 +9,7 @@ import { requireAdmin } from "@/features/auth/session";
 import { categoryInputSchema } from "@/features/categories/category.schemas";
 import { createCategory, deleteCategory, updateCategory } from "@/features/categories/category.service";
 
-function readCategoryForm(formData: FormData) {
+function readCategoryForm(formData: FormData): Record<string, string> {
   return {
     name: readText(formData, "name"),
     slug: readText(formData, "slug"),
@@ -27,37 +27,39 @@ function revalidateCategoryPages(): void {
 }
 
 export async function createCategoryAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const user = await requireAdmin();
-  const parsed = categoryInputSchema.safeParse(readCategoryForm(formData));
-  if (!parsed.success) return validationFailure(parsed.error);
+  await requireAdmin();
+  const values = readCategoryForm(formData);
+  const parsed = categoryInputSchema.safeParse(values);
+  if (!parsed.success) return validationFailure(parsed.error, values);
   try {
-    await createCategory(parsed.data, user.id);
+    await createCategory(parsed.data);
   } catch (error) {
-    return failureFrom(error, "createCategoryAction");
+    return failureFrom(error, "createCategoryAction", values);
   }
   revalidateCategoryPages();
   redirect("/admin/categories");
 }
 
 export async function updateCategoryAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const user = await requireAdmin();
-  const parsed = categoryInputSchema.safeParse(readCategoryForm(formData));
-  if (!parsed.success) return validationFailure(parsed.error);
+  await requireAdmin();
+  const values = readCategoryForm(formData);
+  const parsed = categoryInputSchema.safeParse(values);
+  if (!parsed.success) return validationFailure(parsed.error, values);
   try {
-    await updateCategory(readText(formData, "id"), parsed.data, user.id);
+    await updateCategory(readText(formData, "id"), parsed.data);
   } catch (error) {
-    return failureFrom(error, "updateCategoryAction");
+    return failureFrom(error, "updateCategoryAction", values);
   }
   revalidateCategoryPages();
   return { ok: true, data: undefined, message: "Saved." };
 }
 
 export async function deleteCategoryAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const user = await requireAdmin();
+  await requireAdmin();
   try {
-    await deleteCategory(readText(formData, "id"), user.id);
+    await deleteCategory(readText(formData, "id"));
   } catch (error) {
-    return failureFrom(error, "deleteCategoryAction");
+    return failureFrom(error, "deleteCategoryAction", {});
   }
   revalidateCategoryPages();
   redirect("/admin/categories");

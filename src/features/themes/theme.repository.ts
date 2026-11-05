@@ -1,6 +1,6 @@
 import type { SortOrder } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
-import { toObjectId } from "@/shared/db/ids";
+import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import { escapeRegex } from "@/shared/lib/regex";
 import type { ThemeSort, ThemeStatus } from "@/features/themes/theme.constants";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
@@ -58,10 +58,12 @@ function buildFilter(query: ThemeQuery): MongoFilter {
   return filter;
 }
 
-// Finds a theme by id, any status, or null.
+// Finds a theme by id, any status, or null (also when the id is not a valid id).
 export async function findThemeById(id: string): Promise<ThemeRecord | null> {
+  const objectId = parseObjectId(id);
+  if (!objectId) return null;
   await connectDB();
-  return ThemeModel.findById(toObjectId(id)).lean<ThemeRecord>();
+  return ThemeModel.findById(objectId).lean<ThemeRecord>();
 }
 
 // Finds a theme by slug, any status, or null.

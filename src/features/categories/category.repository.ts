@@ -1,5 +1,5 @@
 import { connectDB } from "@/shared/db/connect";
-import { toObjectId } from "@/shared/db/ids";
+import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import { escapeRegex } from "@/shared/lib/regex";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 
@@ -13,10 +13,12 @@ export function isDuplicateKeyError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === MONGO_DUPLICATE_KEY_CODE;
 }
 
-// Finds a category by id, or null.
+// Finds a category by id, or null (also when the id is not a valid id).
 export async function findCategoryById(id: string): Promise<CategoryRecord | null> {
+  const objectId = parseObjectId(id);
+  if (!objectId) return null;
   await connectDB();
-  return CategoryModel.findById(toObjectId(id)).lean<CategoryRecord>();
+  return CategoryModel.findById(objectId).lean<CategoryRecord>();
 }
 
 // Finds a category by slug, or null.

@@ -28,8 +28,7 @@ function throwSlugConflict(error: unknown): never {
 }
 
 // Creates a category.
-export async function createCategory(input: CategoryInput, adminUserId: string): Promise<{ id: string }> {
-  void adminUserId; // Reserved for the activity log (a later task).
+export async function createCategory(input: CategoryInput): Promise<{ id: string }> {
   await assertNameIsFree(input.name);
   try {
     const created = await categoryRepository.insertCategory(input);
@@ -40,8 +39,7 @@ export async function createCategory(input: CategoryInput, adminUserId: string):
 }
 
 // Changes a category. Keeping its own name is allowed.
-export async function updateCategory(id: string, input: CategoryInput, adminUserId: string): Promise<void> {
-  void adminUserId; // Reserved for the activity log (a later task).
+export async function updateCategory(id: string, input: CategoryInput): Promise<void> {
   await assertNameIsFree(input.name, id);
   let updated: CategoryRecord | null;
   try {
@@ -53,8 +51,7 @@ export async function updateCategory(id: string, input: CategoryInput, adminUser
 }
 
 // Deletes a category that has no themes (any status).
-export async function deleteCategory(id: string, adminUserId: string): Promise<void> {
-  void adminUserId; // Reserved for the activity log (a later task).
+export async function deleteCategory(id: string): Promise<void> {
   const category = await categoryRepository.findCategoryById(id);
   if (!category) throw new AppError("NOT_FOUND", "Category not found.");
   if ((await countThemesInCategory(id)) > 0) {

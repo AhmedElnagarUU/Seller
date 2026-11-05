@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Stack } from "@/shared/layout/Stack";
+import { formKey } from "@/shared/lib/action-result";
 import { FormError } from "@/shared/ui/FormError";
 import { SubmitButton } from "@/shared/ui/SubmitButton";
 import { TextField } from "@/shared/ui/TextField";
@@ -17,7 +18,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const formError = state?.ok === false && !state.fieldErrors ? state.error : null;
 
   return (
-    <form action={formAction}>
+    <form key={formKey(state)} action={formAction}>
       <Stack>
         <FormError message={formError} />
         <input type="hidden" name="token" value={token} />

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Stack } from "@/shared/layout/Stack";
+import { formKey, submittedValue } from "@/shared/lib/action-result";
 import { FormError } from "@/shared/ui/FormError";
 import { SubmitButton } from "@/shared/ui/SubmitButton";
 import { TextField } from "@/shared/ui/TextField";
@@ -19,11 +20,19 @@ export function LoginForm({ next, initialError }: LoginFormProps) {
   const actionError = state?.ok === false && !state.fieldErrors ? state.error : null;
 
   return (
-    <form action={formAction}>
+    <form key={formKey(state)} action={formAction}>
       <Stack>
         <FormError message={actionError ?? initialError} />
         <input type="hidden" name="next" value={next} />
-        <TextField label="Email" name="email" type="email" autoComplete="email" required errors={fieldErrors?.email} />
+        <TextField
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          defaultValue={submittedValue(state, "email", "")}
+          required
+          errors={fieldErrors?.email}
+        />
         <TextField
           label="Password"
           name="password"

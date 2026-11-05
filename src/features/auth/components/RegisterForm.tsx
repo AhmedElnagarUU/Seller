@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Stack } from "@/shared/layout/Stack";
+import { formKey, submittedValue } from "@/shared/lib/action-result";
 import { FormError } from "@/shared/ui/FormError";
 import { SelectField } from "@/shared/ui/SelectField";
 import { SubmitButton } from "@/shared/ui/SubmitButton";
@@ -19,11 +20,26 @@ export function RegisterForm({ countryOptions, defaultCountry }: RegisterFormPro
   const formError = state?.ok === false && !state.fieldErrors ? state.error : null;
 
   return (
-    <form action={formAction}>
+    <form key={formKey(state)} action={formAction}>
       <Stack>
         <FormError message={formError} />
-        <TextField label="Name" name="name" autoComplete="name" required errors={fieldErrors?.name} />
-        <TextField label="Email" name="email" type="email" autoComplete="email" required errors={fieldErrors?.email} />
+        <TextField
+          label="Name"
+          name="name"
+          autoComplete="name"
+          defaultValue={submittedValue(state, "name", "")}
+          required
+          errors={fieldErrors?.name}
+        />
+        <TextField
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          defaultValue={submittedValue(state, "email", "")}
+          required
+          errors={fieldErrors?.email}
+        />
         <TextField
           label="Password"
           name="password"
@@ -38,7 +54,7 @@ export function RegisterForm({ countryOptions, defaultCountry }: RegisterFormPro
           name="country"
           options={countryOptions}
           placeholder="Choose your country"
-          defaultValue={defaultCountry}
+          defaultValue={submittedValue(state, "country", defaultCountry)}
           required
           errors={fieldErrors?.country}
         />
