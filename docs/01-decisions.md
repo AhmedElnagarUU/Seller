@@ -62,7 +62,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-116 | Notifications to many people (new version, new theme in category, announcement) are created by a **notification job** processed in batches by the cron route, never inside the admin's request.              | DEFAULT |
 | D-117 | Unsubscribe = the settings link in the email footer (login needed). No one-click unsubscribe token in the MVP.                                                                                               | DEFAULT |
 | D-118 | Bulk emails use Resend's batch API (100 per request) with an idempotency key per batch. In-app notifications are always created; emails follow the user's switches. Admins never receive bulk notifications. | DEFAULT |
-| D-119 | `EMAIL_TRANSPORT=console` prints emails instead of sending them (local development, E2E). Refused when `NODE_ENV=production`.                                                                                | DEFAULT |
+| D-119 | `EMAIL_TRANSPORT=console` prints emails instead of sending them (local development, E2E). Refused when `APP_ENV=production`.                                                                                | DEFAULT |
 
 ## Admin
 
@@ -133,6 +133,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-089 | KISS coding rules in `02-architecture.md` section 3 apply to all code.                                                                                                                                                                                                         | LOCKED |
 | D-090 | Model types are generated from the Mongoose schema with `InferSchemaType`. Never write the same type by hand.                                                                                                                                                                  | LOCKED |
 | D-091 | Better Auth uses its own `MongoClient` from the `mongodb` package (pinned to the **same version Mongoose uses**, so one driver), created once in `src/shared/db/mongo-client.ts`. Mongoose keeps its own connection. Same database, same URI. | LOCKED |
+| D-092 | `APP_ENV` (`local`, `ci`, `staging`, `production`) says where the app runs. Every "refuse in production" rule (fake payments, console emails) checks `APP_ENV=production`, never `NODE_ENV`. | LOCKED |
 
 ## Styling and tests
 
@@ -141,7 +142,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-130 | **Styling is separated from logic.** All design values (colors, fonts, radius, shadows) live in one tokens file. Only `shared/ui` and `shared/layout` may use visual Tailwind classes. Feature components may use only layout classes. Enforced by `pnpm check:styles`. Details in `02-architecture.md` section 9. | LOCKED  |
 | D-131 | **Tests test real logic.** Service tests run against a real in-memory MongoDB. Only external services (Polar, S3, Resend) are replaced, by fake implementations. Every task lists its required test cases. Details in `10-testing.md`.                                                                             | LOCKED  |
 | D-132 | GitHub Actions runs lint, typecheck, style check, unit/integration tests with coverage, build and E2E on every Pull Request. A PR is merged only when everything is green.                                                                                                                                         | DEFAULT |
-| D-133 | A **fake payment provider** exists for local development and E2E tests. The app refuses to start with it when `NODE_ENV=production`.                                                                                                                                                                               | DEFAULT |
+| D-133 | A **fake payment provider** exists for local development and E2E tests. The app refuses to start with it when `APP_ENV=production`.                                                                                                                                                                               | DEFAULT |
 | D-134 | Coverage minimum: 80% of lines and branches in `features/**/*.service.ts`, `*.mapper.ts`, `*.schemas.ts` and `shared/lib`.                                                                                                                                                                                         | DEFAULT |
 
 ## Demos

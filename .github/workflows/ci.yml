@@ -20,6 +20,7 @@ jobs:
       S3_PUBLIC_BUCKET: store-images
       PUBLIC_IMAGES_BASE_URL: http://localhost:9000/store-images
       ENABLE_DEV_PAGES: "true"
+      APP_ENV: ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

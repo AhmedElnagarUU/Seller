@@ -93,7 +93,7 @@ export class WebhookSignatureError extends Error {}
 Rules:
 - Nothing outside `features/payments/polar/` knows Polar field names. Everything else uses these types.
 - `getPaymentProvider()` returns the fake provider only when `env.PAYMENT_PROVIDER === "fake"`.
-  `shared/config/env.ts` **refuses to start** when `PAYMENT_PROVIDER=fake` and `NODE_ENV=production`.
+  `shared/config/env.ts` **refuses to start** when `PAYMENT_PROVIDER=fake` and `APP_ENV=production`.
 
 ---
 
@@ -379,7 +379,7 @@ This lets the whole purchase flow run in tests and E2E with **real** order/owner
 
 | Name | Example | Notes |
 |---|---|---|
-| `PAYMENT_PROVIDER` | `polar` or `fake` | `fake` is refused when `NODE_ENV=production`. |
+| `PAYMENT_PROVIDER` | `polar` or `fake` | `fake` is refused when `APP_ENV=production`. |
 
 (`POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER` are already in `02-architecture.md` section 10.)
 

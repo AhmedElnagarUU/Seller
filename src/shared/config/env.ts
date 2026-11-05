@@ -10,6 +10,7 @@ const adminEmails = z
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  APP_ENV: z.enum(["local", "ci", "staging", "production"]).default("local"),
   APP_URL: z.url().refine((value) => !value.endsWith("/"), "must not end with a slash"),
   MONGODB_URI: z.string().startsWith("mongodb"),
   S3_ENDPOINT: z.url(),
@@ -33,11 +34,11 @@ const envSchema = z.object({
 });
 
 const envSchemaWithRules = envSchema.superRefine((value, context) => {
-  if (value.EMAIL_TRANSPORT === "console" && value.NODE_ENV === "production") {
+  if (value.EMAIL_TRANSPORT === "console" && value.APP_ENV === "production") {
     context.addIssue({
       code: "custom",
       path: ["EMAIL_TRANSPORT"],
-      message: "EMAIL_TRANSPORT=console is not allowed in production",
+      message: "EMAIL_TRANSPORT=console is not allowed when APP_ENV=production",
     });
   }
   if (value.EMAIL_TRANSPORT === "resend" && !value.RESEND_API_KEY) {

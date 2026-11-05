@@ -412,8 +412,8 @@ export class AppError extends Error {
 | Helper                  | Returns               | When there is no valid user                                                    |
 | ----------------------- | --------------------- | ------------------------------------------------------------------------------ |
 | `getCurrentUser()`      | `CurrentUser \| null` | returns `null`                                                                 |
-| `requireUser()`         | `CurrentUser`         | `redirect("/login?next=<current path>")`                                       |
-| `requireVerifiedUser()` | `CurrentUser`         | not logged in → like `requireUser`; not verified → `redirect("/verify-email")` |
+| `requireUser(currentPath)` | `CurrentUser` | `redirect("/login?next=<currentPath>")`. The page passes its own path, e.g. `requireUser("/account")` (Q-006). |
+| `requireVerifiedUser(currentPath)` | `CurrentUser`         | not logged in → like `requireUser`; not verified → `redirect("/verify-email")` |
 | `requireAdmin()`        | `CurrentUser`         | `notFound()` — the admin area must look like it does not exist                 |
 
 `CurrentUser` = `{ id: string; name: string; email: string; emailVerified: boolean; isAdmin: boolean; country: string | null }`.
@@ -548,12 +548,13 @@ fails to start with a clear message. `.env.example` lists every one of them.
 | `S3_PUBLIC_BUCKET`       | `store-images`                                  | Theme images.                                                                                                           |
 | `PUBLIC_IMAGES_BASE_URL` | `https://images.example.com`                    | Image URL = this + `/` + key. Also read by `next.config.ts` for `images.remotePatterns`.                                |
 | `RESEND_API_KEY`         |                                                 |                                                                                                                         |
+| `APP_ENV` | `local` / `ci` / `staging` / `production` (default `local`) | Where the app runs. **Production-only safety rules use `APP_ENV`, never `NODE_ENV`** (`next build` always sets `NODE_ENV=production`, also for E2E). D-092. |
 | `ENABLE_DEV_PAGES` | `true` / `false` (default `false`) | Shows `/dev/*` preview pages. Local and CI only; never set in production. |
-| `EMAIL_TRANSPORT`        | `resend` or `console`                           | `console` only for local development and E2E; refused when `NODE_ENV=production` (D-119).                               |
+| `EMAIL_TRANSPORT`        | `resend` or `console`                           | `console` only for local development and E2E; refused when `APP_ENV=production` (D-119).                               |
 | `EMAIL_FROM`             | `Store <hello@example.com>`                     |                                                                                                                         |
 | `SUPPORT_EMAIL`          | `support@example.com`                           | Shown on Contact page and in emails.                                                                                    |
 | `CRON_SECRET`            | 32+ random chars                                | Sent by the server cron as `Authorization: Bearer <secret>`.                                                            |
-| `PAYMENT_PROVIDER`       | `polar` or `fake`                               | `fake` only for local development and E2E; refused when `NODE_ENV=production` (D-133).                                  |
+| `PAYMENT_PROVIDER`       | `polar` or `fake`                               | `fake` only for local development and E2E; refused when `APP_ENV=production` (D-133).                                  |
 
 Adding an env variable = update `env.ts`, `.env.example`, and this table in the same PR, and only if the task says so.
 

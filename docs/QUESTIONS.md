@@ -59,15 +59,23 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: `env.ts` must refuse `EMAIL_TRANSPORT=console` when `NODE_ENV=production` (D-119), but `playwright.config.ts` runs `pnpm build && pnpm start`, which is `NODE_ENV=production`. So `pnpm e2e` fails at `next build` with "Invalid or missing environment variables: EMAIL_TRANSPORT" (same kind of problem as Q-004). I implemented the rule as specified and ran the e2e locally with `NODE_ENV=test pnpm e2e`.
 - Options I see: A) the e2e command sets `NODE_ENV=test` (`package.json` script or `webServer.env`). B) a dedicated flag (like `ENABLE_DEV_PAGES`) that allows `console` in the e2e build. C) e2e runs a real `resend` transport against a local fake (not possible without network).
-- Status: OPEN
-- Answer:
-- Doc updated:
+- Status: ANSWERED
+- Answer: Planner error. New env `APP_ENV` (D-092); console emails are refused only when `APP_ENV=production`. Implemented by the planner; plain `pnpm build` / `pnpm e2e` work again.
+- Doc updated: 01-decisions D-092, 02-architecture §10, 06-payments, 09-emails
 
 ### Q-006: requireUser() cannot know the current path
 - Task: T-003
 - Asked by: Claude (implementing agent)
 - Question: `02-architecture.md` section 8 says `requireUser()` redirects to `/login?next=<current path>`, but a server component cannot read its own path (no middleware is allowed, and Next.js gives no pathname). I gave the helpers an optional parameter: `requireUser(currentPath = "/")` and `requireVerifiedUser(currentPath = "/")`; pages pass their own path (`requireUser("/account")`).
 - Options I see: A) keep the parameter (current). B) allow a small `x-pathname` header set by a proxy file. C) each page checks `getCurrentUser()` and redirects itself.
-- Status: OPEN
-- Answer:
-- Doc updated:
+- Status: ANSWERED
+- Answer: Accepted: `requireUser(currentPath)` / `requireVerifiedUser(currentPath)` with the page passing its own path. Every later task lists the path.
+- Doc updated: docs/02-architecture.md §8
+
+### Q-007: First sign-up on an empty database sends 2 verification emails
+- Task: T-003
+- Asked by: Claude (implementing agent, reported as an observation)
+- Question: On a brand-new database, the first sign-up printed two verification emails (one with an unsaved user id). Likely Better Auth's MongoDB transaction retrying while collections are created inside it. Not seen on a database that already has the collections.
+- Status: OPEN (planner, deployment doc)
+- Answer: Planned fix: the deployment doc adds a one-time setup step that creates all collections and indexes before the first start (also needed for our own models). Harmless meanwhile.
+- Doc updated: —

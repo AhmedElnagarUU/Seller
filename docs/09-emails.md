@@ -62,7 +62,7 @@ export class EmailRateLimitError extends Error {}   // thrown when the provider 
     Never log the email body or the recipient list.
 - `env.EMAIL_TRANSPORT === "console"` → console implementation. It prints
   `[email] <templateName> to=<to> subject=<subject>` plus the `text` part, using `console.warn`.
-  It is used for local development and E2E. `env.ts` refuses `console` when `NODE_ENV=production` (D-119).
+  It is used for local development and E2E. `env.ts` refuses `console` when `APP_ENV=production` (D-119).
 - `FakeEmailSender` (`10-testing.md` section 4) implements the same interface. It records `sent`, and can be told to
   fail the next call with a normal error or with `EmailRateLimitError`.
 
@@ -313,7 +313,7 @@ A `failed` job has a **Retry** button (`retryNotificationJobAction`). It sets `s
 |---|---|---|
 | D-117 | Unsubscribe = the settings link in the email footer (login needed). No one-click unsubscribe token in the MVP. | DEFAULT |
 | D-118 | Bulk emails use Resend's batch API (100 per request) with an idempotency key per batch. In-app notifications are always created; emails follow the user's switches. Admins never receive bulk notifications. | DEFAULT |
-| D-119 | `EMAIL_TRANSPORT=console` prints emails instead of sending them, for local development and E2E. It is refused when `NODE_ENV=production`. | DEFAULT |
+| D-119 | `EMAIL_TRANSPORT=console` prints emails instead of sending them, for local development and E2E. It is refused when `APP_ENV=production`. | DEFAULT |
 
 | Name | Example | Notes |
 |---|---|---|
