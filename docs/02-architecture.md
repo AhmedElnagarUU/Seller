@@ -548,6 +548,7 @@ fails to start with a clear message. `.env.example` lists every one of them.
 | `S3_PUBLIC_BUCKET`       | `store-images`                                  | Theme images.                                                                                                           |
 | `PUBLIC_IMAGES_BASE_URL` | `https://images.example.com`                    | Image URL = this + `/` + key. Also read by `next.config.ts` for `images.remotePatterns`.                                |
 | `RESEND_API_KEY`         |                                                 |                                                                                                                         |
+| `ENABLE_DEV_PAGES` | `true` / `false` (default `false`) | Shows `/dev/*` preview pages. Local and CI only; never set in production. |
 | `EMAIL_TRANSPORT`        | `resend` or `console`                           | `console` only for local development and E2E; refused when `NODE_ENV=production` (D-119).                               |
 | `EMAIL_FROM`             | `Store <hello@example.com>`                     |                                                                                                                         |
 | `SUPPORT_EMAIL`          | `support@example.com`                           | Shown on Contact page and in emails.                                                                                    |

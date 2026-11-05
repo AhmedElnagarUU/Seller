@@ -65,7 +65,7 @@ layout classes. No business logic, no data fetching, no feature imports in any f
 - `src/app/page.tsx`: `PageContainer` + `Stack` + `<Heading level={1}>Theme Store</Heading>` +
   `<Text tone="muted">Premium WordPress themes.</Text>`.
 - `src/app/dev/ui/page.tsx` (**new**): a page that shows every component and every variant, for visual review.
-  It must return `notFound()` when `env.NODE_ENV === "production"`.
+  It must return `notFound()` unless `env.ENABLE_DEV_PAGES` is `true` (new env flag, default `false`; `true` in `.env.example` and CI).
 
 ## Required tests
 

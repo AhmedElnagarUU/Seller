@@ -50,6 +50,6 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The task says `/dev/ui` must `notFound()` when `env.NODE_ENV === "production"`, and the e2e tests open `/dev/ui`. But `playwright.config.ts` runs `pnpm build && pnpm start`, which is a production build, so `/dev/ui` is 404 and all 3 ui-kit tests fail. They pass only when the whole run is started with `NODE_ENV=test pnpm e2e` (Next then builds and serves with NODE_ENV=test).
 - Options I see: A) the e2e command sets `NODE_ENV=test` (in `package.json` script or `playwright.config.ts` `webServer.env`); the page stays as specified. B) guard with a new env variable instead. C) e2e runs against `next dev`.
-- Status: OPEN
-- Answer: <filled in by owner/planner>
-- Doc updated: —
+- Status: ANSWERED
+- Answer: Planner error. The page is guarded by a new env flag `ENABLE_DEV_PAGES` (default false; true in .env.example and CI). Implemented by the planner.
+- Doc updated: docs/02-architecture.md section 10, tasks/T-002-ui-kit.md

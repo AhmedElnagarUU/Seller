@@ -27,7 +27,7 @@ const COUNTRY_OPTIONS = [
 ];
 
 export default function UiKitPage() {
-  if (env.NODE_ENV === "production") notFound();
+  if (!env.ENABLE_DEV_PAGES) notFound();
 
   return (
     <PageContainer width="wide">

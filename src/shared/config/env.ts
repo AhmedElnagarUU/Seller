@@ -14,6 +14,7 @@ const envSchema = z.object({
   S3_PRIVATE_BUCKET: z.string().min(1),
   S3_PUBLIC_BUCKET: z.string().min(1),
   PUBLIC_IMAGES_BASE_URL: z.url().refine((value) => !value.endsWith("/"), "must not end with a slash"),
+  ENABLE_DEV_PAGES: booleanString.default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;
