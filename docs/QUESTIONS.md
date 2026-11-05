@@ -44,3 +44,12 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: ANSWERED
 - Answer: A) Keep MONGODB_URI out of test.env; global-setup.ts provides it.
 - Doc updated: tasks/T-001-project-setup.md (Tests section)
+
+### Q-004: /dev/ui returns 404 in the e2e run (production build)
+- Task: T-002
+- Asked by: Claude (implementing agent)
+- Question: The task says `/dev/ui` must `notFound()` when `env.NODE_ENV === "production"`, and the e2e tests open `/dev/ui`. But `playwright.config.ts` runs `pnpm build && pnpm start`, which is a production build, so `/dev/ui` is 404 and all 3 ui-kit tests fail. They pass only when the whole run is started with `NODE_ENV=test pnpm e2e` (Next then builds and serves with NODE_ENV=test).
+- Options I see: A) the e2e command sets `NODE_ENV=test` (in `package.json` script or `playwright.config.ts` `webServer.env`); the page stays as specified. B) guard with a new env variable instead. C) e2e runs against `next dev`.
+- Status: OPEN
+- Answer: <filled in by owner/planner>
+- Doc updated: —

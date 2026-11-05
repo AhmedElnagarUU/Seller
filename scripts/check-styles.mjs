@@ -104,6 +104,15 @@ function findClassStrings(text) {
   return found;
 }
 
+// The root layout may use visual classes on its <body> line only (font setup).
+function stripAllowedLines(file, text) {
+  if (file.replaceAll("\\", "/") !== "src/app/layout.tsx") return text;
+  return text
+    .split("\n")
+    .map((line) => (line.includes("<body") ? "" : line))
+    .join("\n");
+}
+
 function checkStyles() {
   const files = [
     ...listFiles("src/features", (name) => name.endsWith(".tsx")),
@@ -111,7 +120,7 @@ function checkStyles() {
   ];
   const problems = [];
   for (const file of files) {
-    const text = readFileSync(file, "utf8");
+    const text = stripAllowedLines(file, readFileSync(file, "utf8"));
     for (const match of text.matchAll(/className\s*=\s*\{\s*`/g)) {
       problems.push(`${file}:${lineOf(text, match.index)} className must not use a template string`);
     }

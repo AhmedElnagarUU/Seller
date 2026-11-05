@@ -1,7 +1,15 @@
+import { PageContainer } from "@/shared/layout/PageContainer";
+import { Stack } from "@/shared/layout/Stack";
+import { Heading } from "@/shared/ui/Heading";
+import { Text } from "@/shared/ui/Text";
+
 export default function HomePage() {
   return (
-    <main className="p-4">
-      <h1>Theme Store</h1>
-    </main>
+    <PageContainer>
+      <Stack>
+        <Heading level={1}>Theme Store</Heading>
+        <Text tone="muted">Premium WordPress themes.</Text>
+      </Stack>
+    </PageContainer>
   );
 }
