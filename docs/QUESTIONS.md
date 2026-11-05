@@ -85,6 +85,6 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: Fixed in review: (A) the unused `adminUserId` parameter was removed from the services; (B) forms keep what the user typed after an error (`ActionResult` failure has `values`, helpers `submittedValue` and `formKey`; passwords are never echoed); (C) invalid ids in admin URLs give 404 (`parseObjectId` in `shared/db/ids.ts`); (D) `TextField` has `step` and `inputMode`, and `noValidate` was removed. Still open: (1) `ThemeCard` needs "the UI kit image frame" (4:3, `object-cover`), but no such file is listed and `object-cover` is not allowed in features, so I added `src/shared/ui/ImageFrame.tsx`. (2) `e2e/home.spec.ts` expected the old home heading "Theme Store"; the task replaces the home page, so I changed that test to the new heading "Premium WordPress themes". (3) Coverage (D-134) needed tests for the new `shared/lib` helpers, so I added `form-data.test.ts`, `regex.test.ts`, `action-result.test.ts`. (4) The category description has no error message in the spec, so I used "Use up to 300 characters.". (5) The `/admin/themes` table has no cover thumbnail yet (images come with the upload task). (6) "Live demo" links straight to `demoUrl`, because the `/themes/[slug]/preview` page does not exist yet.
 - Options I see: A) accept the open points. B) tell me which ones to change.
-- Status: OPEN
-- Answer:
-- Doc updated:
+- Status: ANSWERED
+- Answer: Planner accepts all remaining points: ImageFrame joins the UI kit; the home.spec heading change; the extra shared/lib tests; "Use up to 300 characters." for the category description; the admin cover thumbnail and the /preview link come with the images and preview tasks.
+- Doc updated: —
