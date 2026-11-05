@@ -79,3 +79,12 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN (planner, deployment doc)
 - Answer: Planned fix: the deployment doc adds a one-time setup step that creates all collections and indexes before the first start (also needed for our own models). Harmless meanwhile.
 - Doc updated: —
+
+### Q-008: Files that T-004 needs but does not list
+- Task: T-004
+- Asked by: Claude (implementing agent)
+- Question: Some pages and checks could not be built exactly as written without touching files that are not in the task's `Files` list. I did the smallest thing in each case and kept going: (1) `ThemeCard` needs "the UI kit image frame" (4:3, `object-cover`), but no such file is listed and `object-cover` is not allowed in features → I added `src/shared/ui/ImageFrame.tsx`. (2) `e2e/home.spec.ts` expected the old home heading "Theme Store"; the task replaces the home page, so I changed that test to the new heading "Premium WordPress themes". (3) Coverage (D-134) needed tests for the new `shared/lib` helpers → I added `form-data.test.ts`, `regex.test.ts`, `action-result.test.ts`. (4) The services get `adminUserId` as the spec says, but nothing uses it yet and ESLint (`no-unused-vars`, zero warnings) rejects an unused last parameter → each function starts with `void adminUserId;` and a comment. (5) The Price field is `type="number"` but `TextField` has no `step` prop, so the browser would reject 29.99 → the admin forms use `noValidate` and rely on the zod messages. (6) The description of a category has no error message in the spec → I used "Use up to 300 characters.". (7) `/admin/themes` table has no cover thumbnail yet (images come with the upload task). (8) "Live demo" links straight to `demoUrl`, because the `/themes/[slug]/preview` page does not exist yet.
+- Options I see: A) accept all of the above. B) tell me which ones to change. For (4) the cleaner fix is `argsIgnorePattern: "^_"` in `eslint.config.mjs` and parameters named `_adminUserId`.
+- Status: OPEN
+- Answer:
+- Doc updated:

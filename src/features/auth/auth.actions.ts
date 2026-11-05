@@ -2,9 +2,9 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import type { ActionResult } from "@/shared/types/action";
-import { AppError } from "@/shared/errors";
+import { failureFrom, validationFailure } from "@/shared/lib/action-result";
+import { readText } from "@/shared/lib/form-data";
 import { safeNextPath } from "@/shared/lib/paths";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from "@/features/auth/auth.schemas";
@@ -17,24 +17,6 @@ import {
   resetPassword,
 } from "@/features/auth/auth.service";
 import { requireUser } from "@/features/auth/session";
-
-function readText(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
-
-// Turns a zod error into an ActionResult. The top message is the first field message.
-function validationFailure(error: z.ZodError): ActionResult {
-  const fieldErrors: Record<string, string[]> = z.flattenError(error).fieldErrors;
-  const firstMessage = Object.values(fieldErrors).flat()[0] ?? AUTH_MESSAGES.generic;
-  return { ok: false, error: firstMessage, fieldErrors };
-}
-
-function failureFrom(error: unknown, actionName: string): ActionResult {
-  if (error instanceof AppError) return { ok: false, error: error.message };
-  console.error(`${actionName} failed`, error);
-  return { ok: false, error: AUTH_MESSAGES.generic };
-}
 
 export async function registerAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const parsed = registerSchema.safeParse({
