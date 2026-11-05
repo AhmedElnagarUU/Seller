@@ -125,10 +125,12 @@ sign-up API; our code sets them). Fields are flat because Better Auth additional
 
 We do **not** store a role. A user is an admin when their email (lowercased) is in `ADMIN_EMAILS` (D-024).
 
-> Planner note (not for the implementing agent): T-002 confirms (1) how Better Auth's MongoDB adapter stores
-> `_id` and `userId` (ObjectId vs string), (2) the session hook used to block disabled users (D-121),
-> (3) that the extra fields above are returned in the session user. This section is updated before any task
-> that depends on it.
+> Verified on better-auth 1.7.17 (MongoDB adapter):
+> 1. Collections are `user`, `session`, `account`, `verification` (singular). `_id` is an **ObjectId**, and
+>    reference fields such as `session.userId` are stored as **ObjectId** too, so our models' `userId: ObjectId` match.
+>    Better Auth gives the id to our code as a hex string (`user.id`).
+> 2. Disabled users are blocked with `databaseHooks.session.create.before` (D-121).
+> 3. Fields in `user.additionalFields` are returned in `session.user` (default `returned: true`).
 
 ---
 

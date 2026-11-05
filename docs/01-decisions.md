@@ -69,7 +69,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | ID    | Decision                                                                                                                                                                               | Status  |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | D-120 | Admin can **disable / enable** customer accounts. A disabled user cannot log in and all their sessions are deleted. Their data stays.                                                  | LOCKED  |
-| D-121 | Disabling is built with a `disabled` user field and a Better Auth session hook that refuses new sessions for disabled users. (Planner verifies the exact Better Auth wiring in T-002.) | DEFAULT |
+| D-121 | Disabling is built with a `disabled` user field and a Better Auth session hook that refuses new sessions for disabled users. Verified (better-auth 1.7.17): `databaseHooks.session.create.before` throws `APIError("FORBIDDEN", { message: "ACCOUNT_DISABLED" })` for disabled users. | DEFAULT |
 | D-122 | Admin can revoke **any** ownership (not only grants), with a reason.                                                                                                                   | LOCKED  |
 | D-123 | Activity log of important events (list in `00-product.md` 4.8). Kept for 1 year. Downloads are counted, not logged there.                                                              | LOCKED  |
 | D-124 | Revenue is always reported **per currency** (USD and EGP separately). Never converted or added together.                                                                               | DEFAULT |
@@ -132,6 +132,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-088 | No `index.ts` barrel files. Import from the real file with the `@/` alias.                                                                                                                                                                                                     | LOCKED |
 | D-089 | KISS coding rules in `02-architecture.md` section 3 apply to all code.                                                                                                                                                                                                         | LOCKED |
 | D-090 | Model types are generated from the Mongoose schema with `InferSchemaType`. Never write the same type by hand.                                                                                                                                                                  | LOCKED |
+| D-091 | Better Auth uses its own `MongoClient` from the `mongodb` package (pinned to the **same version Mongoose uses**, so one driver), created once in `src/shared/db/mongo-client.ts`. Mongoose keeps its own connection. Same database, same URI. | LOCKED |
 
 ## Styling and tests
 
@@ -155,7 +156,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | ID    | Decision                                                                                                    | Status |
 | ----- | ----------------------------------------------------------------------------------------------------------- | ------ |
 | D-080 | Implementing agent: **OpenCode** with **DeepSeek**. It follows `AGENTS.md`.                                 | LOCKED |
-| D-081 | The planner (strong model) writes all docs and task files, and implements T-001 to T-003 as reference code. | LOCKED |
+| D-081 | The planner (strong model) writes all docs and task files, and writes T-001 to T-004 (setup, UI kit, auth, one complete example feature) as reference code, built by a cheaper model under the planner's review. | LOCKED |
 | D-082 | One task = one branch = one Pull Request = one GitHub Issue.                                                | LOCKED |
 | D-083 | The task file in `/tasks` is the full spec. The GitHub Issue only tracks status and links to the task file. | LOCKED |
 

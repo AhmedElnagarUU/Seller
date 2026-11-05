@@ -25,5 +25,5 @@ Task files live in `/tasks`. They are written after the docs above are approved.
 1. Owner + planner agree on `00` and `01`.
 2. Planner writes `02` → `09`, owner reviews each.
 3. Planner writes task files `T-001 …` and creates one GitHub Issue per task.
-4. Planner (strong model) implements T-001 → T-003 as the reference code.
+4. Planner (strong model) writes T-001 → T-004 (reference code), built by a cheaper model and reviewed by the planner.
 5. Implementing agent (OpenCode + DeepSeek) takes the remaining tasks one by one.

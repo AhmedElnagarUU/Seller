@@ -26,6 +26,7 @@ The major versions below were current when this plan was written (October 2026).
 | Database           | `mongoose`                                                           | 9                                                                   |
 | Validation         | `zod`                                                                | 4                                                                   |
 | Auth               | `better-auth`                                                        | 1                                                                   |
+| MongoDB driver (Better Auth only) | `mongodb` | same version as the one inside `mongoose` (D-091) |
 | Payments           | `@polar-sh/sdk`                                                      | 1                                                                   |
 | File storage       | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`                | 3                                                                   |
 | Email sending      | `resend`                                                             | 6                                                                   |
@@ -403,8 +404,8 @@ export class AppError extends Error {
 
 ## 8. Auth rules
 
-- The Better Auth instance is in `features/auth/auth.ts`, using the MongoDB adapter with the same connection
-  as Mongoose.
+- The Better Auth instance is in `features/auth/auth.ts`, using the MongoDB adapter with the `MongoClient` from
+  `shared/db/mongo-client.ts` (D-091).
 - Session helpers are in `features/auth/session.ts`. This file uses Next.js (`headers()`, `redirect()`), so only
   pages, layouts, actions and route handlers may import it — **never services**.
 

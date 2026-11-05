@@ -7,7 +7,7 @@
 ## Goal
 
 An empty but **working** Next.js project with every tool, script and shared base file in place, so later tasks only add features.
-No features, no models, no UI kit components yet (those come in T-001b / T-002 / T-003).
+No features, no models, no UI kit components yet (those come in T-002 / T-003 / T-004).
 
 ## Exact package versions (pin exactly, no `^` or `~`)
 
