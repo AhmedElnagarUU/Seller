@@ -16,7 +16,7 @@ dependencies:
 - `react` 19.3.1
 - `react-dom` 19.3.1
 - `mongoose` 9.12.0
-- `zod` 4.3.4
+- `zod` 4.6.7
 - `clsx` 2.1.1
 
 devDependencies:
@@ -24,7 +24,7 @@ devDependencies:
 - `@types/node` 22.20.5
 - `@types/react` 19.3.0
 - `@types/react-dom` (latest 19.x)
-- `tailwindcss` 4.6.7
+- `tailwindcss` 4.3.4
 - `@tailwindcss/postcss` 4.3.4
 - `eslint` (the version `eslint-config-next` 16.4.5 needs)
 - `eslint-config-next` 16.4.5
@@ -127,7 +127,7 @@ Use a neutral slate palette with indigo primary (values from docs/02-architectur
 
 - `environment: "node"`, `globalSetup: "src/shared/test/global-setup.ts"`, `setupFiles: ["src/shared/test/setup.ts"]`,
   alias `@` → `src`, `fileParallelism: false`, `testTimeout: 30000`.
-- `test.env`: every env variable above with the local values, `NODE_ENV: "test"`.
+- `test.env`: every env variable above with the local values **except `MONGODB_URI`** (global-setup sets it), `NODE_ENV: "test"`.
 - `setup.ts`: `beforeAll` connect mongoose to `process.env.MONGODB_URI`; `beforeEach` delete all documents of every collection and `setTestNow(null)`; `afterAll` disconnect. (Fakes are added later by the tasks that create them.)
 - Coverage: provider v8, `include` = `src/features/**/*.service.ts`, `src/features/**/*.mapper.ts`, `src/features/**/*.schemas.ts`, `src/shared/lib/**`; exclude `**/*.test.ts`; thresholds lines 80, branches 80.
 
