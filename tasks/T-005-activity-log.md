@@ -5,9 +5,6 @@
   `docs/01-decisions.md` D-123; `docs/00-product.md` section 4.8; `docs/05-pages.md` sections 1 and 5 (`/admin/activity` row);
   `docs/10-testing.md`. Copy the structure of `src/features/categories` and `src/features/themes` (T-004).
 
-Sections that contain `[PLANNER: ...]` are **not decided yet**. Build everything else, do not guess the marked part,
-and add the question to `docs/QUESTIONS.md` (AGENTS.md rule).
-
 ## Goal
 
 Create the one place that writes the activity log (`activityService.log`) and the admin page that reads it.
@@ -36,7 +33,10 @@ src/features/activity/
 src/features/users/user.repository.ts    (change) add findUserByEmail(email), findUsersByIds(ids)
 src/features/users/user.service.ts       (change) add getUserIdByEmail(email), getUserNames(userIds)
 src/features/users/user.service.test.ts  (change) append the 2 tests listed below; do not touch the existing tests
-src/shared/lib/dates.ts                  (change) [PLANNER: see "Date and time"]
+src/shared/lib/dates.ts                  (change) add formatDateTime (see "Date and time")
+src/shared/lib/dates.test.ts             (change) append the formatDateTime test below
+src/features/auth/auth.ts                (change) add the databaseHooks.user.create.after hook (see "Logging registrations")
+src/features/auth/auth.service.test.ts   (change) append the registration log test below
 src/shared/test/factories.ts             (change) add createActivityLog(overrides?)
 src/app/admin/activity/page.tsx
 playwright.config.ts                     (change) add `workers: 1` inside defineConfig. All e2e files share the one admin
@@ -123,7 +123,7 @@ Callers import it as `import * as activityService from "@/features/activity/acti
 | Function | Rules / errors |
 |---|---|
 | `log(input: ActivityLogInput, session?: ClientSession): Promise<void>` | Writes **one** row. Omitted nullable fields are saved as `null`. `createdAt` is set to `now()` (clock rule, `10 §2.11`). Ids are converted with `toObjectId`. **System entries never have a user:** `actorRole "system"` together with an `actorUserId` throws `new Error("A system activity entry cannot have an actor user.")` before anything is written. **With a `session`** (inside a transaction): every error is thrown, so the transaction rolls back. **Without a `session`**: it never throws. Any error is caught and written with `console.error("activity log failed", input.action, error)` (never the summary), and the function returns normally. |
-| `listActivity({ action, customerEmail, page }): Promise<ActivityPageDTO>` | Newest first (`createdAt` desc, then `_id` desc), `ACTIVITIES_PER_PAGE` per page, `page` at least 1. Filter `action` (optional). Filter `customerEmail` (optional): the email is trimmed and lowercased, the users service `getUserIdByEmail` finds the customer, and rows match when `subjectUserId` is that customer. `[PLANNER: what the list shows when customerEmail is not empty but no customer has this email — the docs do not say]`. Both filters together are combined with AND. A page above `totalPages` returns empty `items` (05 §1.5). `totalPages = ceil(total / 20)`. `actorLabel`: `actorRole "system"` → `SYSTEM_ACTOR_LABEL`; `"admin"` → `ADMIN_ACTOR_LABEL`; `"customer"` → the customer's name from the users service `getUserNames` (one call for all rows of the page), or `UNKNOWN_CUSTOMER_ACTOR_LABEL` when that user no longer exists. |
+| `listActivity({ action, customerEmail, page }): Promise<ActivityPageDTO>` | Newest first (`createdAt` desc, then `_id` desc), `ACTIVITIES_PER_PAGE` per page, `page` at least 1. Filter `action` (optional). Filter `customerEmail` (optional): the email is trimmed and lowercased, the users service `getUserIdByEmail` finds the customer, and rows match when `subjectUserId` is that customer. When `customerEmail` is not empty but no customer has this email, the result is an empty list (`items []`, `total 0`, `totalPages 0`). Both filters together are combined with AND. A page above `totalPages` returns empty `items` (05 §1.5). `totalPages = ceil(total / 20)`. `actorLabel`: `actorRole "system"` → `SYSTEM_ACTOR_LABEL`; `"admin"` → `ADMIN_ACTOR_LABEL`; `"customer"` → the customer's name from the users service `getUserNames` (one call for all rows of the page), or `UNKNOWN_CUSTOMER_ACTOR_LABEL` when that user no longer exists. |
 
 Users feature (the activity feature must not import the user repository or model, D-087):
 - `user.repository.ts`: `findUserByEmail(email)` (exact match on the already lowercased email, `.lean()`, or `null`) and
@@ -158,11 +158,28 @@ Copy `src/app/admin/themes/page.tsx` for the structure and a `buildHref(action, 
   Cells: the date and time of `createdAt` (see below), `actorLabel`, `summary`, and `TextLink` "Open" to `targetPath`
   (or "—" when `targetPath` is `null`).
 - `Pagination` below the table, keeping the filters.
-- Empty list: `[PLANNER: empty-state text of /admin/activity — 05 §5 gives none]`.
+- Empty list: `Text` "No activity found."
 
 ### Date and time
 
-`[PLANNER: 05 §5 asks for a "date-time" column, but 02 §9.8 only defines formatDate (e.g. "Oct 27, 2026") and the docs define no date-and-time format. Needed: the exact format and the name of the helper in src/shared/lib/dates.ts (+ its test in dates.test.ts).]`
+Add `formatDateTime(date: Date): string` to `src/shared/lib/dates.ts`: UTC, locale `en-US`, 24-hour clock, format `"Oct 27, 2026, 14:05"` (use an `Intl.DateTimeFormat` with `year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "UTC"`; check that midnight gives `"00:05"`, not `"24:05"`). The table shows `createdAt` with it.
+
+### Logging registrations
+
+In `src/features/auth/auth.ts`, inside the existing `databaseHooks`, add (it covers email and Google sign-ups):
+
+```ts
+user: {
+  create: {
+    after: async (user) =>
+      activityService.log({
+        action: "user_registered", actorRole: "customer", actorUserId: user.id, subjectUserId: user.id,
+        targetType: "user", targetId: user.id, summary: `Customer registered: ${user.name}`,
+      }),
+  },
+},
+```
+Import `import * as activityService from "@/features/activity/activity.service"`. Keep the existing `session.create.before` hook as it is. A log failure must not break sign-up: `log` without a session already swallows errors (03 §15). If the summary would be longer than 300 characters the log is skipped by that same rule (names are at most 80 characters).
 
 ## Factory (`createActivityLog`)
 
@@ -200,8 +217,14 @@ export async function loginAs(page: Page, email: string): Promise<void>;
 - [ ] listActivity › filters by action → rows `order_paid` and `feedback_sent`; filter `order_paid` gives only the first
 - [ ] listActivity › filters by customer email ignoring case and spaces → rows about customer A and B; `customerEmail " " + A.email.toUpperCase() + " "` gives only A's rows
 - [ ] listActivity › combines the action and customer filters → A has an `order_paid` and a `feedback_sent` row; both filters give only the `order_paid` row
-- [ ] listActivity › `[PLANNER: test for the unknown-email decision]`
+- [ ] listActivity › returns an empty list for an email that no customer has → rows exist; `customerEmail "nobody@example.com"` gives `items []`, `total 0`, `totalPages 0`
 - [ ] listActivity › labels the actor → `system` row "System", `admin` row "Admin", `customer` row = the customer's name, `customer` row whose user id has no user = "Unknown customer"
+
+`dates.test.ts` (append)
+- [ ] formatDateTime › formats UTC date and 24-hour time → `new Date("2026-10-27T14:05:00Z")` gives `"Oct 27, 2026, 14:05"`; `new Date("2026-10-27T00:05:00Z")` gives `"Oct 27, 2026, 00:05"`
+
+`auth.service.test.ts` (append)
+- [ ] registerUser › logs one user_registered row → after `registerUser`, 1 activity row: `action "user_registered"`, `actorRole "customer"`, `actorUserId` and `subjectUserId` = the new user id, `targetType "user"`, `targetId` = the user id, `summary "Customer registered: <name>"`
 
 `user.service.test.ts` (append)
 - [ ] getUserIdByEmail › finds a user by email ignoring case and spaces; returns null for an unknown email

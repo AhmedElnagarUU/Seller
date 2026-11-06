@@ -5,9 +5,6 @@
   `docs/09-emails.md` sections 1 (file list only), 4, 5.3 (`lockedUntil` only); `docs/01-decisions.md` D-111, D-112, D-116;
   `docs/10-testing.md`. Copy the structure of `src/features/themes` and `src/features/categories` (T-004).
 
-Sections that contain `[PLANNER: ...]` are **not decided yet**. Build everything else, do not guess the marked part,
-and add the question to `docs/QUESTIONS.md` (AGENTS.md rule).
-
 ## Goal
 
 The database part of notifications: the two models, the text of every in-app notification, and the three functions that
@@ -139,7 +136,7 @@ The functions do not check that the theme, category, version or customer exists 
 
 ### Body of update notifications
 
-`[PLANNER: 09 §4 says the body of owned_theme_updated and favorite_theme_updated is "First change text, max 200 chars (+ <n> more when more)". Needed: the exact format when there are more changes (separator, spacing) and whether "max 200" cuts the first change text or the whole body. With exactly one change the body is that change text.]`
+With exactly one change the body is that change text. With more changes the body is `<first change text> + <n> more`, where `<n>` is the number of the other changes (`changeTexts.length - 1`): `"Fixed the footer + 2 more"`. The first change text is cut at 200 characters first (with the same `…` rule as `cutText`); the result is then cut at 1 000 like every body.
 
 ## Required tests
 
@@ -177,7 +174,7 @@ The functions do not check that the theme, category, version or customer exists 
 - [ ] buildOwnedThemeUpdatedText › builds title and link → `{ themeName: "Aurora Blog", version: "1.4.0" }` gives title `"Aurora Blog 1.4.0 is available"`, link `"/account/themes"`
 - [ ] buildFavoriteThemeUpdatedText › builds title and link → title `"Aurora Blog 1.4.0 is out"`, link `"/themes/aurora-blog"`
 - [ ] update notifications › body with one change is that change → `changeTexts ["Fixed the footer"]` gives body `"Fixed the footer"`
-- [ ] update notifications › body with more changes → `[PLANNER: same decision as "Body of update notifications"]`
+- [ ] update notifications › body with more changes → `changeTexts ["Fixed the footer", "Added dark mode", "New header"]` gives body `"Fixed the footer + 2 more"`; a first change text of 250 characters is cut to 200 characters ending in `…` before ` + 1 more` is added
 - [ ] buildCategoryNewThemeText › builds title, body and link → title `"New in Blog: Aurora Blog"`, body = the tagline, link `"/themes/aurora-blog"`
 - [ ] buildAnnouncementText › keeps title and body and gives link null without a link; keeps the link when given
 - [ ] buildWalletPaymentApprovedText › says the amount → `amountEgp 1465` gives title `"Payment approved: Aurora Blog"`, body `"Your payment of 1,465 EGP was confirmed. You can download the theme now."`, link `"/account/themes"`

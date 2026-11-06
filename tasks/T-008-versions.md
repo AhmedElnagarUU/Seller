@@ -6,9 +6,6 @@
   `docs/05-pages.md` section 3 (`/themes/[slug]` Changelog) and section 5 (versions rows); `docs/09-emails.md` section 5.5 (admin view only);
   `docs/10-testing.md`. Copy `src/features/themes` (T-004) and the image upload of T-006 (`theme-image.*`, `useThemeImageUpload.ts`).
 
-Sections that contain `[PLANNER: ...]` are **not decided yet**. Build everything else, do not guess the marked part,
-and add the question to `docs/QUESTIONS.md` (AGENTS.md rule).
-
 ## Goal
 
 The admin uploads a theme `.zip` **directly from the browser** to the private bucket, the server checks the stored file and saves a
@@ -181,14 +178,14 @@ All admin pages: `requireAdmin()`, metadata title `"<Page title> · Theme Store"
 - `/themes/[slug]` (change): after `<ThemeDetail>` render `<Changelog versions={await listVersionsForTheme(theme.id)} />` inside a `Stack`. `Changelog` (05 §3): `Heading level 2` "Changelog"; for each version `Heading level 3` `"<version> — <formatDate(releasedAt)>"`
   and its changes, each as `Badge` (label from `CHANGE_TYPE_LABELS`) + `Text` with the change text. The whole section is hidden when there are no versions.
 
-`VersionForm` fields (07 §4.1): `TextField` "Version" (placeholder = next patch number: `nextPatchVersion(latestVersion)` when the theme has a version; `[PLANNER: placeholder when the theme has no version yet]`),
+`VersionForm` fields (07 §4.1): `TextField` "Version" (placeholder = next patch number: `nextPatchVersion(latestVersion)` when the theme has a version; `"1.0.0"` when it has none),
 `ChangesEditor`, `FileField` "Zip file" (`accept=".zip,application/zip"`), `CheckboxField` "Notify owners and people who favorited this theme" (`defaultChecked`), and `Button type="submit"` "Upload and release".
 `useVersionUpload` runs the flow of 07 §4.1 on submit: (1) the file name ends with `.zip` (case-insensitive) and `file.size` is 1 – 209 715 200, else show `VERSION_MESSAGES.invalidZip` and stop;
 (2) `createZipUploadUrlAction({ themeId, fileName: file.name, sizeBytes: file.size })`, on `ok: false` show `result.error`; (3) `uploadFile(...)` with a `ProgressBar` and the text `"Uploading… 42%"` (the real percent), on rejection show `VERSION_MESSAGES.uploadFailed`;
 (4) `createVersionAction({ themeId, version, changes, notify, fileKey: <key from step 2>, originalName: file.name })` while showing `"Checking the file…"`; on `ok: false` show `result.error` and the `fieldErrors` (`version`, `changes`).
 On success the action redirects, so the hook does nothing after it. While a step runs the submit button is disabled.
 
-`[PLANNER: the docs give the form fields and flow but no wording for the other texts and no layout of the version pages. The text below is a PROPOSAL, not approved. Do not build these screens until the marker is removed.]`
+Wording and layout of the version pages:
 - Page headings: versions list `"Versions of <theme name>"`; new page `"Upload a new version"`; edit page `"Edit changelog: <theme name> <version>"` with `TextLink` "Back to versions". Empty list: `"No versions yet."`.
 - Table header cells: "Version", "Released", "Size", "SHA-256", "Notifications", "Actions". `CopyTextButton`: `Button size="sm" variant="secondary"` "Copy", showing "Copied" for the rest of the page visit after a click (uses `navigator.clipboard.writeText`).
 - Notifications cell: `—` when `notification` is `null`; otherwise a `Badge` with `NOTIFICATION_JOB_STATUS_LABELS[status]` (tone: pending neutral, running primary, done success, failed danger), then `Text size sm` `"<notifiedCount> notified, <emailedCount> emailed"`, and for a failed job the `error` text.
@@ -301,11 +298,11 @@ store it with `fakeStorage.putTestObject({ bucket: "private", key, contentType: 
 - [ ] toThemeAdminDTO › has the latest version string, or null without versions
 - [ ] getJobSummaries › returns one summary per known job id → maps id to `{ id, status, notifiedCount, emailedCount, error }`; unknown id missing
 
-`e2e/versions.spec.ts` (needs MongoDB and MinIO from docker compose; `[PLANNER]` wording above must be decided first. The tests of this file run **in this order** and share the theme.)
+`e2e/versions.spec.ts` (needs MongoDB and MinIO from docker compose). The tests of this file run **in this order** and share the theme.
 Seed in `beforeAll` (`mongoose.connect(readMongoUri())`, `removeAdminAccount()`): one category and one **published** theme `Versioned Aurora <RUN_ID>` (slug `versioned-aurora-<RUN_ID>`), no versions.
 Create the admin once with `registerAs` on a page from the `browser` fixture. `const zip = createZipFile("aurora/style.css", "/* Theme Name: Aurora */")`; its SHA-256 is computed with `node:crypto` in the test.
 `afterAll`: delete the versions of the theme, the theme, the category, the notification jobs of the theme, the activity rows of the theme (`targetId`), `mongoose.disconnect()`.
-- [ ] admin releases a version with a real zip → `loginAs`; open `/admin/themes/<id>/versions/new`; the "Version" field has the placeholder `[PLANNER]`; fill "Version" `1.0.0`, "Type of change 1" `New`, "Text of change 1" `First release of the theme`; `getByLabel("Zip file").setInputFiles({ name: "aurora.zip", mimeType: "application/zip", buffer: zip })`; click "Upload and release"; the URL becomes `/admin/themes/<id>/versions?released=1.0.0&notified=1`; text "Version 1.0.0 released. Notifications are being sent." is visible; the table row shows `1.0.0`, `0.0 MB` and the first 12 characters of the SHA-256; DB: 1 version with the full `sha256`, theme `latestVersion.version "1.0.0"`, 1 notification job with `status "pending"`, 1 activity row `version_released`
+- [ ] admin releases a version with a real zip → `loginAs`; open `/admin/themes/<id>/versions/new`; the "Version" field has the placeholder `1.0.0`; fill "Version" `1.0.0`, "Type of change 1" `New`, "Text of change 1" `First release of the theme`; `getByLabel("Zip file").setInputFiles({ name: "aurora.zip", mimeType: "application/zip", buffer: zip })`; click "Upload and release"; the URL becomes `/admin/themes/<id>/versions?released=1.0.0&notified=1`; text "Version 1.0.0 released. Notifications are being sent." is visible; the table row shows `1.0.0`, `0.0 MB` and the first 12 characters of the SHA-256; DB: 1 version with the full `sha256`, theme `latestVersion.version "1.0.0"`, 1 notification job with `status "pending"`, 1 activity row `version_released`
 - [ ] admin cannot release a version that is not higher → open the form again, version `1.0.0`, same change text, the zip; click "Upload and release": the text "The version must be higher than 1.0.0." is visible; DB still 1 version
 - [ ] a file that is not a zip is refused before uploading → choose `{ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") }`, version `1.0.1`, a change text; click: "Please choose a .zip file of at most 200 MB." is visible; DB still 1 version
 - [ ] visitors see the changelog on the theme page → open `/themes/versioned-aurora-<RUN_ID>` (no login): heading "Changelog", the text `1.0.0 — `, the change text `First release of the theme` and the badge `New` are visible

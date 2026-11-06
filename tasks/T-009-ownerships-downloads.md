@@ -6,9 +6,6 @@
   `docs/01-decisions.md` D-004, D-011, D-014, D-016, D-034, D-049, D-057, D-122; `docs/06-payments.md` section 11 (only the ownership lines, for context);
   `docs/10-testing.md`. Copy `src/features/themes` and `src/features/versions` (T-004, T-008).
 
-Sections that contain `[PLANNER: ...]` are **not decided yet**. Build everything else, do not guess the marked part,
-and add the question to `docs/QUESTIONS.md` (AGENTS.md rule).
-
 ## Goal
 
 "Who may download which theme" (ownerships) with every rule of 03 §8, the download link service and its route (rate limit, download
@@ -96,12 +93,15 @@ The service calls other features only through their services (D-087): themes (`l
 
 ### Admin grant and revoke
 
-`[PLANNER: 03 §8 gives the two refusal messages but not their error codes, and 03 §19 says to log ownership_granted / ownership_revoked without giving the summary sentences. Also undecided: whether these two functions must check that the theme and the customer exist (and with which messages). Build everything else in this task, but do not build grantByAdmin and revokeByAdmin until this block is decided.]`
 
-Already decided (03 §8, §19), for whoever builds them after the decision:
-- `grantByAdmin`: when an `active` ownership exists → refused with the message `"This customer already owns this theme."`. Otherwise **one transaction**: insert or re-activate the ownership
-  (`source "admin_grant"`, `grantedByUserId` = the admin, `grantNote` = `note` or `null`; re-activation updates the same document and nulls `revoked*`), then `activityService.log({ action: "ownership_granted", actorRole: "admin", actorUserId: adminUserId, subjectUserId: userId, targetType: "theme", targetId: themeId, summary: <PLANNER> }, session)`.
-- `revokeByAdmin`: when the ownership does not exist or is already `revoked` → refused with `"This customer does not own this theme."`. Otherwise **one transaction**: revoke with `revokedReason "admin"`, `revokedByUserId` = the admin, `revokeNote` = `note` (required, 1–300 characters, validated by the T-017 form), then log `ownership_revoked` (same fields, `summary: <PLANNER>`).
+
+Both are top-level admin events and start their own transaction. Checks come first, in this order:
+1. `getThemeForAdmin(themeId)` (themes service) is not `null`, else NOT_FOUND `"Theme not found."`.
+2. `getUserNames([userId])` (users service) has the customer, else NOT_FOUND `"Customer not found."`.
+
+- `grantByAdmin`: when an `active` ownership exists → refused with CONFLICT `"This customer already owns this theme."`. Otherwise **one transaction**: insert or re-activate the ownership
+  (`source "admin_grant"`, `grantedByUserId` = the admin, `grantNote` = `note` or `null`; re-activation updates the same document and nulls `revoked*`), then `activityService.log({ action: "ownership_granted", actorRole: "admin", actorUserId: adminUserId, subjectUserId: userId, targetType: "theme", targetId: themeId, summary: "Theme granted: <Theme name> to <Customer name>" }, session)`.
+- `revokeByAdmin`: when the ownership does not exist or is already `revoked` → refused with CONFLICT `"This customer does not own this theme."`. Otherwise **one transaction**: revoke with `revokedReason "admin"`, `revokedByUserId` = the admin, `revokeNote` = `note` (required, 1–300 characters, validated by the T-017 form), then log `ownership_revoked` (same fields, `summary: "Theme revoked: <Theme name> from <Customer name>"`).
 - `note` of `grantByAdmin` is `string | null`; `note` of `revokeByAdmin` is `string`.
 
 ## Themes feature changes
@@ -262,8 +262,16 @@ export async function putStoredFile(input: {
 - [ ] listOwnedThemes › includes unpublished themes with their status and cover → unpublished theme with 1 image: `theme.status "unpublished"`, `theme.coverImage.url` built from `PUBLIC_IMAGES_BASE_URL`
 - [ ] listOwnedThemes › lists versions newest first and leaves a theme without versions with an empty list → 2 versions with different `releasedAt`; second theme `versions []`
 - [ ] listOwnedThemes › returns an empty list for a user without ownerships
-- [ ] grantByAdmin › `[PLANNER: tests of the "Admin grant and revoke" block: refusal of an active ownership, creating and re-activating, the note, the activity log]`
-- [ ] revokeByAdmin › `[PLANNER: tests of the "Admin grant and revoke" block: refusal of a missing or revoked ownership, the revoke fields, the activity log]`
+- [ ] grantByAdmin › creates an admin grant and logs it → returns; 1 ownership: `status "active"`, `source "admin_grant"`, `grantedByUserId` = admin, `grantNote "Beta tester"`, `orderId null`; 1 activity row: `action "ownership_granted"`, `actorRole "admin"`, `actorUserId` = admin, `subjectUserId` = customer, `targetType "theme"`, `targetId` = theme, `summary "Theme granted: <Theme name> to <Customer name>"`
+- [ ] grantByAdmin › saves a null note as null → `grantNote null`
+- [ ] grantByAdmin › re-activates a revoked ownership in the same document → same `_id`, 1 row; `source "admin_grant"`, `grantedByUserId` = admin, `orderId null`, all `revoked*` `null`
+- [ ] grantByAdmin › refuses an active ownership → CONFLICT `"This customer already owns this theme."`; row unchanged; 0 activity rows
+- [ ] grantByAdmin › refuses an unknown theme and an unknown customer → NOT_FOUND `"Theme not found."` / `"Customer not found."`; 0 ownerships; 0 activity rows
+- [ ] revokeByAdmin › revokes with reason, admin and note and logs it → `status "revoked"`, `revokedReason "admin"`, `revokedByUserId` = admin, `revokeNote "Chargeback"`, `revokedAt` = the fixed `now()`; 1 activity row: `action "ownership_revoked"`, `actorRole "admin"`, `subjectUserId` = customer, `targetType "theme"`, `targetId` = theme, `summary "Theme revoked: <Theme name> from <Customer name>"`
+- [ ] revokeByAdmin › can revoke a purchase ownership too (D-122) → ownership with an `orderId` is revoked
+- [ ] revokeByAdmin › refuses an already revoked ownership → CONFLICT `"This customer does not own this theme."`; row unchanged; 0 activity rows
+- [ ] revokeByAdmin › refuses a customer who never owned the theme → same CONFLICT; 0 rows
+- [ ] revokeByAdmin › refuses an unknown theme and an unknown customer → NOT_FOUND `"Theme not found."` / `"Customer not found."`
 
 `theme.service.test.ts` (append)
 - [ ] listThemeSummariesByIds › returns name, slug, status and cover of the given themes and leaves out unknown and invalid ids

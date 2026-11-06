@@ -6,9 +6,6 @@
   `docs/05-pages.md` section 5 (`/admin/themes` and `/admin/themes/[id]` rows); `docs/10-testing.md` sections 2 – 4.
   Copy the structure of `src/features/themes` (T-004) and the forms of `ThemeForm.tsx`.
 
-Sections that contain `[PLANNER: ...]` are **not decided yet**. Build everything else, do not guess the marked part,
-and add the question to `docs/QUESTIONS.md` (AGENTS.md rule).
-
 ## Goal
 
 The storage module (the only code that talks to S3 / R2 / MinIO) and the admin theme images: pick a file, upload it
@@ -139,7 +136,7 @@ Inputs of the actions (all objects, validated with `safeParse` on `unknown`):
 - `createImageUploadUrlSchema`: `{ themeId: string, contentType: string, sizeBytes: number }`.
 - `addThemeImageSchema`: `themeId` string, `key` string, `alt` string 0–150 chars, `width` and `height` integers 400–6000.
   Message of `width` and `height` (both): `"Images must be 400 to 6000 pixels wide and high."`.
-  Message of `alt` too long: `[PLANNER: error text for an alt text over 150 characters — 07 gives none]`.
+  Message of `alt` too long: `"Use up to 150 characters."`.
 - `removeThemeImageSchema`: `{ themeId, key }`. `reorderThemeImagesSchema`: `{ themeId, keys: string[] }`.
 - `updateThemeImageAltSchema`: `{ themeId, key, alt }` (same `alt` rule and message as above).
 Export the input types (`AddThemeImageInput`, ...) with `z.output`, named like `ThemeInput`.
@@ -164,7 +161,7 @@ After success every action revalidates: `/admin/themes/[id]` (page), `/themes/[s
 
 `ThemeImagesManager` (client) lists the images and holds the add control; `ThemeImageRow` (client) is one image with its buttons;
 `useThemeImageUpload(themeId)` is the hook with the upload steps (02 §9.5). Flow of the hook (07 §3.1):
-1. Read the size with `createImageBitmap(file)`, then `bitmap.close()`. If it cannot be read: error `[PLANNER: see UI wording]`.
+1. Read the size with `createImageBitmap(file)`, then `bitmap.close()`. If it cannot be read: error `"Please upload a JPG, PNG or WebP image up to 3 MB."` and stop.
 2. Width or height outside 400–6000 → error `"Images must be 400 to 6000 pixels wide and high."` and stop.
 3. `createImageUploadUrlAction({ themeId, contentType: file.type, sizeBytes: file.size })`. On `ok: false` show `result.error` and stop.
 4. `uploadFile(result.data, file, setPercent)` with a `ProgressBar`. On rejection show `"The upload failed. Please check your connection and try again."` and stop.
@@ -172,7 +169,7 @@ After success every action revalidates: `/admin/themes/[id]` (page), `/themes/[s
 All actions are called inside a transition; buttons are disabled while one runs. Errors show in a `FormError`.
 After a successful action the page data refreshes by itself (the action revalidates the page).
 
-`[PLANNER: the docs describe the flow of the images screen but give no wording or layout. The text below is a PROPOSAL, not approved. Do not build the screen until the marker is removed.]`
+Screen wording and layout:
 - `Heading level 2` "Images"; `Text tone muted` "The first image is the cover. Up to 12 images, JPG, PNG or WebP, 3 MB each, 400 to 6000 pixels."
 - `FileField` label "Add an image", `accept="image/jpeg,image/png,image/webp"`, selecting a file starts the upload at once; while uploading show the `ProgressBar` (label "Uploading image") and `Text` "Uploading… <percent>%". After a finished upload the field is reset (give it a new `key`).
 - Message when the image cannot be read by the browser: `"Please upload a JPG, PNG or WebP image up to 3 MB."`.
@@ -260,13 +257,13 @@ export function createPngFile(width: number, height: number): Buffer {
 `theme-image.schemas.test.ts`
 - [ ] addThemeImageSchema › accepts 400 and 6000 and refuses 399 and 6001 pixels → message `"Images must be 400 to 6000 pixels wide and high."` on `width` and on `height`
 - [ ] addThemeImageSchema › refuses a decimal width such as `800.5`
-- [ ] addThemeImageSchema › `[PLANNER: test for the alt text over 150 characters]` (an alt of exactly 150 characters is accepted)
+- [ ] addThemeImageSchema › refuses an alt text of 151 characters with `"Use up to 150 characters."` on `alt` and accepts exactly 150 characters
 
 `theme.mapper.test.ts` (append)
 - [ ] toThemeAdminDTO › lists the images with key, URL, alt, width and height
 - [ ] toThemeAdminListItemDTO › has the first image as `coverImage` and `null` without images
 
-`e2e/theme-images.spec.ts` (needs MongoDB and MinIO from docker compose; `[PLANNER]` wording above must be decided first)
+`e2e/theme-images.spec.ts` (needs MongoDB and MinIO from docker compose)
 Seed in `beforeAll` (`mongoose.connect(readMongoUri())`, `removeAdminAccount()`): one category and two **draft** themes with `ThemeModel.create`
 (`Imaged Aurora <RUN_ID>` and `Small Aurora <RUN_ID>`, valid fields as in `catalog.spec.ts`). Create the admin once with `registerAs` on a page from the `browser` fixture.
 `afterAll`: delete the themes and the category (slug regex `<RUN_ID>`), `mongoose.disconnect()`.
