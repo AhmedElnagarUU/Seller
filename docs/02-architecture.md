@@ -332,7 +332,7 @@ No internal REST API for reading data. Pages call services directly.
 
 ### 5.7 Route handlers (`app/api/**/route.ts`)
 
-Only these four exist. Each one calls a single function from a feature and nothing else.
+Only these five exist. Each one calls a single function from a feature and nothing else.
 
 | Route                            | Calls                                                                                                                                           |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -340,6 +340,7 @@ Only these four exist. Each one calls a single function from a feature and nothi
 | `api/webhooks/polar`             | `features/payments/payment.webhook.ts` (`06-payments.md`)                                                                                       |
 | `api/downloads/[versionId]`      | `getCurrentUser()` then `createDownloadLink()` from `features/downloads/download.service.ts` (exact code in `07-delivery-updates.md` section 7) |
 | `api/cron/process-notifications` | `features/notifications/notification-job.processor.ts` (`09-emails.md`), protected by `CRON_SECRET`                                             |
+| `api/health` | `pingDatabase()` from `shared/db/connect.ts` (`11-deployment.md` §2, D-144) |
 
 Do not add route handlers for anything else. Forms use server actions.
 

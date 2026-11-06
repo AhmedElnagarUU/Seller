@@ -76,9 +76,9 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Task: T-003
 - Asked by: Claude (implementing agent, reported as an observation)
 - Question: On a brand-new database, the first sign-up printed two verification emails (one with an unsaved user id). Likely Better Auth's MongoDB transaction retrying while collections are created inside it. Not seen on a database that already has the collections.
-- Status: OPEN (planner, deployment doc)
-- Answer: Planned fix: the deployment doc adds a one-time setup step that creates all collections and indexes before the first start (also needed for our own models). Harmless meanwhile.
-- Doc updated: —
+- Status: ANSWERED
+- Answer: `ensureDatabase()` creates every collection on server start (D-147), built in T-020.
+- Doc updated: docs/11-deployment.md §7
 
 ### Q-008: Files that T-004 needs but does not list
 - Task: T-004

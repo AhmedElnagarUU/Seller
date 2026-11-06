@@ -108,7 +108,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-045 | Tests: **Vitest** for unit tests. **Playwright** for a few end-to-end tests of the main flows.                                                                                                                                                                                                                              | LOCKED                |
 | D-046 | Lint/format: ESLint + Prettier.                                                                                                                                                                                                                                                                                             | LOCKED                |
 | D-047 | Email sending: **Resend**. Bulk update emails are sent in batches.                                                                                                                                                                                                                                                          | LOCKED                |
-| D-048 | Hosting: the owner's existing **DigitalOcean VPS**. Details (Docker or not, reverse proxy, process manager) are decided later in a deployment doc.                                                                                                                                                                          | LOCKED (details OPEN) |
+| D-048 | Hosting: the owner's existing **DigitalOcean VPS**. Details in `11-deployment.md` (D-140 – D-147).                                                                                                                                                                          | LOCKED |
 | D-049 | Theme `.zip` files are stored in **private** object storage and downloaded through short-lived signed URLs. They are never public and never served from the Next.js `public/` folder.                                                                                                                                       | LOCKED                |
 | D-050 | Database hosting: **MongoDB Atlas**.                                                                                                                                                                                                                                                                                        | LOCKED                |
 | D-051 | File storage uses the **standard S3 API** (`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`). The provider (Amazon S3, DigitalOcean Spaces, Cloudflare R2…) is chosen **only by environment variables** (endpoint, region, keys, bucket names). No provider-specific code. The provider is **Cloudflare R2** (D-054). | LOCKED                |
@@ -144,6 +144,19 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-132 | GitHub Actions runs lint, typecheck, style check, unit/integration tests with coverage, build and E2E on every Pull Request. A PR is merged only when everything is green.                                                                                                                                         | DEFAULT |
 | D-133 | A **fake payment provider** exists for local development and E2E tests. The app refuses to start with it when `APP_ENV=production`.                                                                                                                                                                               | DEFAULT |
 | D-134 | Coverage minimum: 80% of lines and branches in `features/**/*.service.ts`, `*.mapper.ts`, `*.schemas.ts` and `shared/lib`.                                                                                                                                                                                         | DEFAULT |
+
+## Deployment
+
+| ID | Decision | Status |
+|---|---|---|
+| D-140 | Production and staging run on the owner's VPS with Docker Compose and Caddy. MongoDB stays on Atlas. | DEFAULT |
+| D-141 | Each environment builds its own Docker image on the VPS from a git ref, with its env file as a BuildKit secret. No image registry. | DEFAULT |
+| D-142 | Deploy = `deploy/deploy.sh` over SSH. Staging gets `main`, production gets a tested git tag. A few seconds of downtime is accepted. | DEFAULT |
+| D-143 | Backups: nightly `mongodump` to a private R2 bucket, kept 30 days; restore tested every 3 months. | DEFAULT |
+| D-144 | 5th route handler `GET /api/health` (MongoDB ping, no auth, no details). | DEFAULT |
+| D-145 | Monitoring = UptimeRobot on `/api/health` + Docker logs. No error-tracking service in the MVP. | DEFAULT |
+| D-146 | Cloudflare proxies the site with an Origin Certificate, SSL mode Full (strict). | DEFAULT |
+| D-147 | On server start the app creates missing collections and syncs indexes (`ensureDatabase`). | DEFAULT |
 
 ## Demos
 
