@@ -601,6 +601,7 @@ Never store the webhook body.
 
 - `{ userId: 1, createdAt: -1 }` (rate limit)
 - `{ themeId: 1, createdAt: -1 }` (top themes by downloads)
+- `{ createdAt: 1 }` with `expireAfterSeconds: 31536000` (deleted after 1 year, D-148). All-time counts use `themes.stats.downloadCount`.
 
 ---
 

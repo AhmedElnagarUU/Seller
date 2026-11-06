@@ -508,7 +508,8 @@ Do this once for **production**. For **staging**, repeat it with the bucket name
    `<ACCOUNT_ID>` is shown on the R2 overview page.
 8. **Check.** In the admin panel, upload one image and one zip. Grant the theme to yourself and download it.
    Confirm the downloaded file's SHA-256 equals the one on the admin version list.
-9. **Spending alert (optional).** Under **Billing** → **Notifications**, add a usage alert, for example at $5.
+9. **Lifecycle rule (D-149).** On `store-files` → Settings → Object lifecycle rules → add rule: prefix `wallet-proofs/`, delete objects after **365 days**.
+10. **Spending alert (optional).** Under **Billing** → **Notifications**, add a usage alert, for example at $5.
 
 ---
 

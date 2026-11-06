@@ -157,6 +157,8 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-145 | Monitoring = UptimeRobot on `/api/health` + Docker logs. No error-tracking service in the MVP. | DEFAULT |
 | D-146 | Cloudflare proxies the site with an Origin Certificate, SSL mode Full (strict). | DEFAULT |
 | D-147 | On server start the app creates missing collections and syncs indexes (`ensureDatabase`). | DEFAULT |
+| D-148 | `downloadLogs` rows are deleted after 1 year (TTL index). | DEFAULT |
+| D-149 | Wallet proof screenshots are deleted by an R2 lifecycle rule on the `wallet-proofs/` prefix after 365 days. The wallet payment record stays. | DEFAULT |
 
 ## Demos
 
