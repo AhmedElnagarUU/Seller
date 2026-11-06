@@ -18,7 +18,7 @@
 
 | Name | File | From |
 |---|---|---|
-| `activityService.log(input, session?)` (see T-010 for the input shape) | `features/activity/activity.service.ts` | T-005 |
+| `activityService.log(input, session?)` (input shape: see T-010; here `subjectUserId` and `actorUserId` as given below) | `features/activity/activity.service.ts` | T-005 |
 | `getPaymentProvider()`, `syncThemeProduct` pattern, `fakePaymentProvider` | `features/payments/…`, `shared/test/fakes/fake-payment-provider.ts` | T-010 |
 | `setTestNow`, `now()` | `shared/lib/clock.ts` | T-001 |
 
@@ -273,7 +273,7 @@ updateCoupon / helpers
 - [ ] syncCouponDiscount › passes every field to the provider and returns `{ ok: true, discountId }`
 - [ ] syncCouponDiscount › returns `{ ok: false }` and does not throw when the provider fails
 
-## E2E (`e2e/coupons.spec.ts`; helpers from `e2e/helpers.ts`, T-010)
+## E2E (`e2e/coupons.spec.ts`; helpers from `e2e/helpers.ts`, T-005: `ADMIN_EMAIL`, `readMongoUri`, `registerAs`, `removeAdminAccount`)
 
 - [ ] the admin creates a 20 % coupon for all themes (code `E2E-<RUN_ID>`) → the list shows the code, `20%`, `All themes`, `0 / Unlimited` and `Active`
 - [ ] the admin tries to create the same code again → the page shows `This coupon code is already used.`

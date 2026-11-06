@@ -23,7 +23,7 @@ Ids are passed as strings.
 
 | Name | File | From |
 |---|---|---|
-| `activityService.log(input, session?)` — `import * as activityService from "@/features/activity/activity.service"`. `input` = `{ action, actorRole, actorUserId, subjectUserId, targetType, targetId, summary }` (03 §15). Pass `null` for fields that do not apply. | `features/activity/activity.service.ts` | T-005 |
+| `activityService.log(input, session?)` — `import * as activityService from "@/features/activity/activity.service"`. `input: ActivityLogInput` = `{ action, actorRole, actorUserId?, subjectUserId?, targetType?, targetId?, summary }` (03 §15); omitted nullable fields are saved as `null`; a `system` entry must not have an `actorUserId`; with a `session` every error is thrown (the transaction rolls back); `summary` is 2–300 characters. | `features/activity/activity.service.ts` | T-005 |
 | `createThemePublishedJob({ themeId, categoryId, createdByUserId }, session)` | `features/notifications/notification-job.service.ts` | T-007 |
 | `NotificationJobModel` (tests read it) | `features/notifications/notification-job.model.ts` | T-007 |
 | `ActivityLogModel` (tests read it) | `features/activity/activity-log.model.ts` | T-005 |
@@ -72,7 +72,6 @@ The e2e run uses `PAYMENT_PROVIDER=fake`: a developer's local `.env` must get th
 ```
 package.json, pnpm-lock.yaml                     add @polar-sh/sdk 1.0.2
 .env.example, vitest.config.ts, .github/workflows/ci.yml     (change) env, see above
-playwright.config.ts                             (change) add `workers: 1` — [PLANNER: e2e specs share the single admin account admin@example.com (ADMIN_EMAILS); parallel files would delete each other's admin. Recommended: workers 1. Confirm.]
 src/shared/config/env.ts                         (change) 4 variables + 3 rules
 src/shared/config/env.test.ts                    new (see Required tests)
 
@@ -104,7 +103,6 @@ src/features/themes/components/admin/PublishChecklist.tsx
 src/features/themes/components/admin/PublishPanel.tsx   ("use client")
 src/app/admin/themes/[id]/page.tsx               (change) add the checklist block (below)
 
-e2e/helpers.ts                                   new: readMongoUri, registerAs, removeAdminAccount (copied from catalog.spec.ts; catalog.spec.ts itself is NOT changed)
 e2e/publish.spec.ts
 ```
 
@@ -367,13 +365,14 @@ In `theme.service.test.ts`, test `createTheme › saves a draft with price in ce
 - [ ] publishTheme › refuses an already published theme → CONFLICT `"This theme is already published."`; unknown id → NOT_FOUND `"Theme not found."`
 - [ ] publishTheme › first publish sets status, `publishedAt = now()`, creates one `theme_published` job for the theme's category (`stage: "category_followers"`, status `pending`) and one `theme_published` activity log (actorRole `admin`, actorUserId = admin, targetId = theme, summary `"Theme published: <name>"`)
 - [ ] publishTheme › publishing again after unpublish keeps the old `publishedAt` and creates no second job
-- [ ] publishTheme › rolls back everything when the log insert fails (insert the theme with `ThemeModel.collection.insertOne` and a 400-character `name`, so the summary is longer than the 300 characters of `activityLogs.summary`) → status still `draft`, 0 jobs, 0 logs
+- [ ] publishTheme › rolls back everything when the log insert fails (create the theme with the factory, then `ThemeModel.collection.updateOne({ _id }, { $set: { name: "x".repeat(400) } })`, which bypasses validation, so the summary is longer than the 300 characters of `activityLogs.summary`) → status still `draft`, 0 jobs, 0 logs
 - [ ] unpublishTheme › sets `unpublished`, logs `theme_unpublished`; refuses a draft and an already unpublished theme → CONFLICT `"Only a published theme can be unpublished."`
 - [ ] getPublishChecklist › reports the three checks and `canPublish`; `null` for an unknown id
 
-## E2E (`e2e/publish.spec.ts`, helpers in `e2e/helpers.ts`)
+## E2E (`e2e/publish.spec.ts`)
 
-Seed in `beforeAll` (same style as `catalog.spec.ts`): remove the old admin account, create a category and a **draft** theme with `ThemeModel.create` that has one image, a `latestVersion` (`{ versionId: new mongoose.Types.ObjectId(), version: "1.0.0", releasedAt: new Date() }`) and `provider: { productId: null, syncedAt: null }`.
+Helpers from `e2e/helpers.ts` (created by T-005): `ADMIN_EMAIL`, `readMongoUri`, `registerAs(page, email)`, `removeAdminAccount()`. `playwright.config.ts` already runs one worker (T-005), so specs can share the admin account.
+Seed in `beforeAll` (same style as `catalog.spec.ts`): `mongoose.connect(readMongoUri())`, `removeAdminAccount()`, create a category and a **draft** theme with `ThemeModel.create` that has one image, a `latestVersion` (`{ versionId: new mongoose.Types.ObjectId(), version: "1.0.0", releasedAt: new Date() }`) and `provider: { productId: null, syncedAt: null }`.
 - [ ] the admin registers, opens `/admin/themes/<id>`, sees `Not synced with payment provider` and a disabled `Publish` button
 - [ ] the admin clicks `Retry sync` → the text `Not synced with payment provider` disappears; `Publish` is enabled
 - [ ] the admin clicks `Publish` → `Theme published.` appears and `/themes?q=<theme name>` shows the theme card
