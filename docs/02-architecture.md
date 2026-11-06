@@ -149,7 +149,7 @@ app/ page.tsx or route.ts         (Next.js)
 | `*.repository.ts`                                             | own model, `shared/db/*`, `mongoose` types                                                                                   | `next/*`, services, other features' models                                            |
 | `*.model.ts`                                                  | `mongoose`, own constants                                                                                                    | anything else                                                                         |
 | `*.mapper.ts`, `*.schemas.ts`, `*.types.ts`, `*.constants.ts` | `zod`, own constants/types, `shared/lib`                                                                                     | services, repositories, models, `next/*`                                              |
-| `components/**`                                               | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/layout`, `shared/lib` | services, repositories, models                                                        |
+| `components/**`                                               | own and other features' `types`, `constants`, `schemas`, `actions`, `components`; `shared/ui`, `shared/layout`, `shared/lib`, `shared/storage/upload-file.ts` (browser upload helper, 07 §2.4) | services, repositories, models                                                        |
 | `shared/**`                                                   | other `shared/*`                                                                                                             | anything in `features/`                                                               |
 
 The three most important rules:
@@ -519,7 +519,7 @@ May change only: `src/styles/tokens.css`, `src/shared/ui/**`, `src/shared/layout
 - Every form field has a `<label>`. Every image has `alt`. Buttons show a pending state while an action runs.
 - Use `next/image` for theme images and `next/link` for internal links.
 - Prices are always shown with `formatPrice(amount, currency)` from `shared/lib/money.ts` → `"$29.00"`, `"1,465 EGP"`.
-- Dates are always shown with `formatDate(date)` from `shared/lib/dates.ts` → `"Oct 27, 2026"`.
+- Dates are always shown with `formatDate(date)` from `shared/lib/dates.ts` → `"Oct 27, 2026"`. Date and time (admin tables) with `formatDateTime(date)` → `"Oct 27, 2026, 14:05"` (UTC, 24-hour).
 
 ---
 
