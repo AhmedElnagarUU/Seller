@@ -108,7 +108,7 @@ All in `payment-sync.service.ts`. Called by the themes and coupons services **af
 |---|---|
 | Theme created | `upsertProduct` with `existingProductId: null`; save `provider.productId`, `provider.syncedAt`. |
 | Theme `name`, `tagline` or `priceCents` changed | `upsertProduct` with the existing id; update `provider.syncedAt`. |
-| Sync fails | Theme stays saved. Admin theme page shows **"Not synced with payment provider"** and a **Retry sync** button. `console.error` the failure. |
+| Sync fails | Theme stays saved. Admin theme page shows **"Not synced with payment provider"** and a **Sync now** button (05 §5). `console.error` the failure. |
 
 Polar product content: name = theme name, description = tagline, one **fixed one-time price** in USD = `priceCents`,
 metadata `{ themeId }`.

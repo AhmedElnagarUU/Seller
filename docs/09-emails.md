@@ -244,7 +244,7 @@ while batches < MAX_BATCHES_PER_RUN:
     job = claimNextJob()                 # 5.3; none → stop
     result = processOneBatch(job)        # 5.4
     batches += 1
-    if result == "rate_limited": release lock, stop the run
+    if result != "ok": release lock, stop the run      # rate limit OR failed batch (a failing job must not burn its 5 attempts in one run)
 return { processedBatches: batches, finishedJobs }
 ```
 
