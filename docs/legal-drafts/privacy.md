@@ -65,8 +65,8 @@ We use **one cookie**: a login session cookie. It is needed to keep you logged i
 | Notifications | 1 year |
 | Payment webhook event records (technical IDs only, no payment details) | 90 days |
 | Database backups | 30 days |
-| Download records | [OWNER: not yet decided. See README.] |
-| Wallet payment screenshots | [OWNER: not yet decided. See README.] |
+| Download records | 1 year, then deleted automatically |
+| Wallet payment screenshots | 1 year, then deleted automatically (the payment record itself stays with your orders) |
 
 After you ask us to delete your account, data may stay in backups until they expire (30 days).
 
