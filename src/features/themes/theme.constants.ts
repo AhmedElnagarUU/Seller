@@ -31,6 +31,11 @@ export const MAX_PRICE_CENTS = 100_000;
 export const DEMO_URL_MAX = 500;
 export const MAX_THEME_IMAGES = 12;
 export const IMAGE_ALT_MAX = 150;
+export const MAX_IMAGE_BYTES = 3_145_728;
+export const IMAGE_MIN_PX = 400;
+export const IMAGE_MAX_PX = 6000;
+export const IMAGE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+export const IMAGE_UPLOAD_SECONDS = 600;
 export const SEARCH_TEXT_MAX = 80;
 
 export const THEMES_PER_PAGE = 20;

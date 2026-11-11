@@ -2,7 +2,7 @@ import type { SortOrder } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
 import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import { escapeRegex } from "@/shared/lib/regex";
-import type { ThemeSort, ThemeStatus } from "@/features/themes/theme.constants";
+import { MAX_THEME_IMAGES, type ThemeSort, type ThemeStatus } from "@/features/themes/theme.constants";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 
 const MONGO_DUPLICATE_KEY_CODE = 11000;
@@ -12,6 +12,9 @@ export type ThemeFields = Pick<
   ThemeRecord,
   "name" | "slug" | "tagline" | "description" | "features" | "priceCents" | "demoUrl" | "requirements" | "featured"
 > & { categoryId: string };
+
+// One picture of a theme as it is saved.
+export type ThemeImageFields = { key: string; alt: string; width: number; height: number };
 
 // What to look for. Every field is optional; the ones given are combined with AND.
 export type ThemeQuery = {
@@ -108,4 +111,33 @@ export async function updateThemeById(id: string, fields: ThemeFields): Promise<
     { $set: { ...fields, categoryId: toObjectId(fields.categoryId) } },
     { returnDocument: "after", runValidators: true },
   ).lean<ThemeRecord>();
+}
+
+// Adds an image at the end of the list, only when there is room left. Returns false when the list is full.
+// One update, so two uploads at the same time cannot go over the limit (docs/07-delivery-updates.md 3.3).
+export async function pushThemeImage(themeId: string, image: ThemeImageFields): Promise<boolean> {
+  await connectDB();
+  const result = await ThemeModel.updateOne(
+    { _id: toObjectId(themeId), [`images.${MAX_THEME_IMAGES - 1}`]: { $exists: false } },
+    { $push: { images: image } },
+  );
+  return result.modifiedCount === 1;
+}
+
+// Removes the image with this key from the list.
+export async function pullThemeImage(themeId: string, key: string): Promise<void> {
+  await connectDB();
+  await ThemeModel.updateOne({ _id: toObjectId(themeId) }, { $pull: { images: { key } } });
+}
+
+// Replaces the whole image list (used to change the order).
+export async function replaceThemeImages(themeId: string, images: ThemeImageFields[]): Promise<void> {
+  await connectDB();
+  await ThemeModel.updateOne({ _id: toObjectId(themeId) }, { $set: { images } });
+}
+
+// Changes the alt text of one image.
+export async function setThemeImageAlt(themeId: string, key: string, alt: string): Promise<void> {
+  await connectDB();
+  await ThemeModel.updateOne({ _id: toObjectId(themeId), "images.key": key }, { $set: { "images.$.alt": alt } });
 }

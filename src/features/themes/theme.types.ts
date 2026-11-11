@@ -8,6 +8,9 @@ export type ThemeImageDTO = {
   height: number;
 };
 
+// The admin also needs the key, to remove, reorder and describe an image.
+export type ThemeAdminImageDTO = ThemeImageDTO & { key: string };
+
 export type ThemeCardDTO = {
   id: string;
   slug: string;
@@ -46,6 +49,7 @@ export type ThemeAdminDTO = {
   testedUpTo: string;
   featured: boolean;
   publishedAt: Date | null;
+  images: ThemeAdminImageDTO[];
 };
 
 export type ThemeAdminListItemDTO = {
@@ -57,6 +61,7 @@ export type ThemeAdminListItemDTO = {
   salesCount: number;
   downloadCount: number;
   updatedAt: Date;
+  coverImage: ThemeImageDTO | null;
 };
 
 export type ThemePageDTO<Item> = {

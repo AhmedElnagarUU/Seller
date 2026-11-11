@@ -1,3 +1,4 @@
+import { crc32, deflateSync } from "node:zlib";
 import mongoose from "mongoose";
 import { expect, type Page } from "@playwright/test";
 
@@ -40,4 +41,30 @@ export async function loginAs(page: Page, email: string): Promise<void> {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Log in", exact: true }).click();
   await page.waitForURL("/");
+}
+
+function pngChunk(type: string, data: Buffer): Buffer {
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const typeAndData = Buffer.concat([Buffer.from(type, "ascii"), data]);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(crc32(typeAndData));
+  return Buffer.concat([length, typeAndData, checksum]);
+}
+
+// A plain white PNG of the given size: a real image that the browser can decode.
+export function createPngFile(width: number, height: number): Buffer {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // bit depth
+  header[9] = 2; // colour type: RGB
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(width * 3, 255)]);
+  const pixels = Buffer.concat(Array.from({ length: height }, () => row));
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", deflateSync(pixels)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
 }

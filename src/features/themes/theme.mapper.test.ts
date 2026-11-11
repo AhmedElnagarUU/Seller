@@ -77,3 +77,51 @@ describe("toThemeAdminDTO and toThemeAdminListItemDTO", () => {
     expect(listItem.latestVersion).toBeNull();
   });
 });
+
+describe("toThemeAdminDTO", () => {
+  it("lists the images with key, URL, alt, width and height", async () => {
+    const theme = await createTheme({
+      images: [
+        { key: "theme-images/aurora/cover.webp", alt: "Cover", width: 1200, height: 900 },
+        { key: "theme-images/aurora/second.png", alt: "", width: 800, height: 600 },
+      ],
+    });
+
+    expect(toThemeAdminDTO(theme).images).toEqual([
+      {
+        key: "theme-images/aurora/cover.webp",
+        url: "http://localhost:9000/store-images/theme-images/aurora/cover.webp",
+        alt: "Cover",
+        width: 1200,
+        height: 900,
+      },
+      {
+        key: "theme-images/aurora/second.png",
+        url: "http://localhost:9000/store-images/theme-images/aurora/second.png",
+        alt: "",
+        width: 800,
+        height: 600,
+      },
+    ]);
+  });
+});
+
+describe("toThemeAdminListItemDTO", () => {
+  it("has the first image as `coverImage` and `null` without images", async () => {
+    const withImages = await createTheme({
+      images: [
+        { key: "theme-images/aurora/cover.webp", alt: "Cover", width: 1200, height: 900 },
+        { key: "theme-images/aurora/second.png", alt: "Second", width: 800, height: 600 },
+      ],
+    });
+    const withoutImages = await createTheme();
+
+    expect(toThemeAdminListItemDTO(withImages).coverImage).toEqual({
+      url: "http://localhost:9000/store-images/theme-images/aurora/cover.webp",
+      alt: "Cover",
+      width: 1200,
+      height: 900,
+    });
+    expect(toThemeAdminListItemDTO(withoutImages).coverImage).toBeNull();
+  });
+});

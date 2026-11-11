@@ -1,6 +1,7 @@
 import { formatDate } from "@/shared/lib/dates";
 import { formatPrice } from "@/shared/lib/money";
 import { Badge } from "@/shared/ui/Badge";
+import { ImageFrame } from "@/shared/ui/ImageFrame";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/shared/ui/Table";
 import { TextLink } from "@/shared/ui/TextLink";
 import { THEME_STATUS_LABELS } from "@/features/themes/theme.constants";
@@ -15,6 +16,7 @@ export function ThemeTable({ themes }: ThemeTableProps) {
     <Table>
       <TableHead>
         <TableRow>
+          <TableHeaderCell>Cover</TableHeaderCell>
           <TableHeaderCell>Name</TableHeaderCell>
           <TableHeaderCell>Status</TableHeaderCell>
           <TableHeaderCell>Price</TableHeaderCell>
@@ -28,6 +30,15 @@ export function ThemeTable({ themes }: ThemeTableProps) {
       <TableBody>
         {themes.map((theme) => (
           <TableRow key={theme.id}>
+            <TableCell>
+              {theme.coverImage ? (
+                <div className="w-16">
+                  <ImageFrame src={theme.coverImage.url} alt={theme.coverImage.alt} sizes="64px" />
+                </div>
+              ) : (
+                "—"
+              )}
+            </TableCell>
             <TableCell>{theme.name}</TableCell>
             <TableCell>
               <Badge>{THEME_STATUS_LABELS[theme.status]}</Badge>

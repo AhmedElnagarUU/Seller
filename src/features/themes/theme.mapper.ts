@@ -3,6 +3,7 @@ import type { CategoryDTO } from "@/features/categories/category.types";
 import type { ThemeRecord } from "@/features/themes/theme.model";
 import type {
   ThemeAdminDTO,
+  ThemeAdminImageDTO,
   ThemeAdminListItemDTO,
   ThemeCardDTO,
   ThemeDetailDTO,
@@ -13,6 +14,10 @@ type ThemeImageRecord = ThemeRecord["images"][number];
 
 function toThemeImageDTO(image: ThemeImageRecord): ThemeImageDTO {
   return { url: publicImageUrl(image.key), alt: image.alt, width: image.width, height: image.height };
+}
+
+function toThemeAdminImageDTO(image: ThemeImageRecord): ThemeAdminImageDTO {
+  return { ...toThemeImageDTO(image), key: image.key };
 }
 
 export function toThemeCardDTO(theme: ThemeRecord, categoryName: string): ThemeCardDTO {
@@ -63,10 +68,12 @@ export function toThemeAdminDTO(theme: ThemeRecord): ThemeAdminDTO {
     testedUpTo: theme.requirements.testedUpTo,
     featured: theme.featured,
     publishedAt: theme.publishedAt ?? null,
+    images: theme.images.map(toThemeAdminImageDTO),
   };
 }
 
 export function toThemeAdminListItemDTO(theme: ThemeRecord): ThemeAdminListItemDTO {
+  const [firstImage] = theme.images;
   return {
     id: theme._id.toString(),
     name: theme.name,
@@ -76,5 +83,6 @@ export function toThemeAdminListItemDTO(theme: ThemeRecord): ThemeAdminListItemD
     salesCount: theme.stats.salesCount,
     downloadCount: theme.stats.downloadCount,
     updatedAt: theme.updatedAt,
+    coverImage: firstImage ? toThemeImageDTO(firstImage) : null,
   };
 }

@@ -88,3 +88,30 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: ANSWERED
 - Answer: Planner accepts all remaining points: ImageFrame joins the UI kit; the home.spec heading change; the extra shared/lib tests; "Use up to 300 characters." for the category description; the admin cover thumbnail and the /preview link come with the images and preview tasks.
 - Doc updated: —
+
+### Q-009: `validationFailure` and `failureFrom` cannot be returned from an action with data
+- Task: T-006
+- Asked by: Claude (implementing agent)
+- Question: `createImageUploadUrlAction` must return `ActionResult<PresignedUpload>`, but `validationFailure` and `failureFrom` in `src/shared/lib/action-result.ts` return `ActionResult` (data `undefined`), so TypeScript refuses the `return`. That file is not in the T-006 file list. I added a small local function `asUploadFailure` in `theme-image.actions.ts` that only narrows the type. T-008 (zip upload URL) will hit the same problem.
+- Options I see: A) keep the local function. B) change the two helpers to return only the failure part of `ActionResult` (it fits every `ActionResult<T>`) and remove the local function.
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-010: Theme images do not show on a local machine (Next.js blocks `localhost` image sources)
+- Task: T-006
+- Asked by: Claude (implementing agent)
+- Question: Uploads work and the image is saved, but `next/image` (used by `ImageFrame`) refuses to load it locally. The server logs `upstream image http://localhost:9000/store-images/... hostname resolved to private IP ["127.0.0.1"] ... use images.dangerouslyAllowLocalIP = true`, and the admin and store pages show a broken image. Production is not affected (the R2 public address is not a private IP). T-006 says not to change `next.config.ts`, so I changed nothing. The e2e tests still pass because they check the database and the labels, not the picture.
+- Options I see: A) in `next.config.ts` set `images.dangerouslyAllowLocalIP: true` only when `APP_ENV` is `local` or `ci`. B) leave it: images are broken in local development and e2e only.
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-011: The MinIO images of `docker-compose.yml` could not be pulled (follow-up of Q-002)
+- Task: T-006
+- Asked by: Claude (implementing agent)
+- Question: `docker pull minio/minio:RELEASE.2025-04-22T22-12-26Z` and `minio/mc:RELEASE.2025-04-16T18-13-26Z` both answer "pull access denied ... repository does not exist or may require 'docker login'" in my sandbox (the `mongo:8.0.4` image pulls fine from the same registry). It may be only my sandbox. I ran `e2e/theme-images.spec.ts` against another local S3-compatible server on port 9000 with the same two buckets, and all 4 tests passed. Please run `docker compose up -d` and `pnpm e2e` once on a normal machine or in CI to confirm against real MinIO.
+- Options I see: A) the tags pull fine elsewhere: nothing to do. B) they do not: pin other MinIO images in `docker-compose.yml`.
+- Status: OPEN
+- Answer:
+- Doc updated:

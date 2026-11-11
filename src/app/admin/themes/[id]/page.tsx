@@ -9,6 +9,7 @@ import { TextLink } from "@/shared/ui/TextLink";
 import { requireAdmin } from "@/features/auth/session";
 import { listCategoriesForAdmin } from "@/features/categories/category.service";
 import { ThemeForm } from "@/features/themes/components/admin/ThemeForm";
+import { ThemeImagesManager } from "@/features/themes/components/admin/ThemeImagesManager";
 import { THEME_STATUS_LABELS } from "@/features/themes/theme.constants";
 import { getThemeForAdmin } from "@/features/themes/theme.service";
 
@@ -40,6 +41,7 @@ export default async function EditThemePage({ params, searchParams }: EditThemeP
         {theme.status === "published" ? <TextLink href={`/themes/${theme.slug}`}>View in store</TextLink> : null}
       </Inline>
       <ThemeForm theme={theme} categoryOptions={categoryOptions} />
+      <ThemeImagesManager themeId={theme.id} images={theme.images} />
     </Stack>
   );
 }
