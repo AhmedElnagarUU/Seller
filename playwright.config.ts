@@ -4,6 +4,7 @@ const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "e2e",
+  workers: 1,
   use: {
     baseURL: "http://localhost:3000",
     launchOptions: chromiumExecutablePath ? { executablePath: chromiumExecutablePath } : {},

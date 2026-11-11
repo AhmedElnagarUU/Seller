@@ -4,6 +4,7 @@ import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { env } from "@/shared/config/env";
 import { getMongoClient } from "@/shared/db/mongo-client";
+import * as activityService from "@/features/activity/activity.service";
 import { sendResetPasswordEmail, sendVerifyEmail } from "@/features/emails/email.service";
 import { isUserDisabled } from "@/features/users/user.service";
 
@@ -44,6 +45,20 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    user: {
+      create: {
+        after: async (user) =>
+          activityService.log({
+            action: "user_registered",
+            actorRole: "customer",
+            actorUserId: user.id,
+            subjectUserId: user.id,
+            targetType: "user",
+            targetId: user.id,
+            summary: `Customer registered: ${user.name}`,
+          }),
+      },
+    },
     session: {
       create: {
         before: async (session) => {

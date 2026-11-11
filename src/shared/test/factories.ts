@@ -1,3 +1,4 @@
+import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
@@ -66,4 +67,22 @@ export async function createTheme(overrides: ThemeOverrides = {}): Promise<Theme
     categoryId,
   });
   return theme.toObject();
+}
+
+// A system "order_paid" row about nobody. Pass `createdAt` to place it in time.
+export async function createActivityLog(
+  overrides: Partial<Omit<ActivityLogRecord, "_id">> = {},
+): Promise<ActivityLogRecord> {
+  const number = nextNumber();
+  const activityLog = await ActivityLogModel.create({
+    action: "order_paid",
+    actorRole: "system",
+    actorUserId: null,
+    subjectUserId: null,
+    targetType: null,
+    targetId: null,
+    summary: `Order paid: Theme ${number}`,
+    ...overrides,
+  });
+  return activityLog.toObject();
 }

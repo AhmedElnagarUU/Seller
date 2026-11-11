@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
+import { ActivityLogModel } from "@/features/activity/activity-log.model";
 import { loginUser, registerUser, requestPasswordReset, resetPassword } from "@/features/auth/auth.service";
 import { UserModel } from "@/features/users/user.model";
 import { fakeEmailSender } from "@/shared/test/fakes/fake-email-sender";
@@ -45,6 +46,21 @@ describe("registerUser", () => {
       message: "An account with this email already exists. Log in instead.",
     });
     expect(await UserModel.countDocuments()).toBe(1);
+  });
+
+  it("logs one user_registered row", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+
+    const user = await UserModel.findOne({ email: "ann@example.com" }).lean();
+    const rows = await ActivityLogModel.find().lean();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.action).toBe("user_registered");
+    expect(rows[0]?.actorRole).toBe("customer");
+    expect(rows[0]?.actorUserId?.toString()).toBe(user?._id.toString());
+    expect(rows[0]?.subjectUserId?.toString()).toBe(user?._id.toString());
+    expect(rows[0]?.targetType).toBe("user");
+    expect(rows[0]?.targetId?.toString()).toBe(user?._id.toString());
+    expect(rows[0]?.summary).toBe("Customer registered: Ann Lee");
   });
 });
 

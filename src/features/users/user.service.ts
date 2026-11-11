@@ -18,3 +18,15 @@ export async function isUserDisabled(userId: string): Promise<boolean> {
 export function isAdminEmail(email: string): boolean {
   return env.ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
+
+// Finds the id of the user with this email (ignoring case and spaces around it), or null.
+export async function getUserIdByEmail(email: string): Promise<string | null> {
+  const user = await userRepository.findUserByEmail(email.trim().toLowerCase());
+  return user ? user._id.toString() : null;
+}
+
+// Maps user id → name. Unknown and invalid ids are missing from the map.
+export async function getUserNames(userIds: string[]): Promise<Map<string, string>> {
+  const users = await userRepository.findUsersByIds(userIds);
+  return new Map(users.map((user) => [user._id.toString(), user.name]));
+}
