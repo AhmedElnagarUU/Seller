@@ -115,3 +115,12 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-012: `auth.service.test.ts` fails about 1 run in 5 (not caused by T-007)
+- Task: T-007
+- Asked by: Claude (implementing agent)
+- Question: The first test of `src/features/auth/auth.service.test.ts` ("registerUser › creates the user with country and default settings") sometimes fails with `MongoServerError: Unable to write to collection 'themestore-test.user' due to catalog changes; please retry the operation`. I measured it by running that one file many times: 1 of 15 runs fails on the T-004 code (before my tasks), and 5 of 24 on the current code. It looks like a race: Better Auth creates the first user in a transaction while Mongoose is still building the indexes of the `user` collection for `UserModel`. When it happens, `pnpm test` or `pnpm test:coverage` fails and a re-run passes. I did not change any existing test or the test setup (not in my file list).
+- Options I see: A) in `src/shared/test/setup.ts`, `await UserModel.init()` in `beforeAll` so the indexes exist before any test runs. B) leave it and re-run when it fails.
+- Status: OPEN
+- Answer:
+- Doc updated:
