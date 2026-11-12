@@ -8,6 +8,7 @@ import type {
   ThemeCardDTO,
   ThemeDetailDTO,
   ThemeImageDTO,
+  ThemeSummaryDTO,
 } from "@/features/themes/theme.types";
 
 type ThemeImageRecord = ThemeRecord["images"][number];
@@ -84,6 +85,17 @@ export function toThemeAdminListItemDTO(theme: ThemeRecord): ThemeAdminListItemD
     salesCount: theme.stats.salesCount,
     downloadCount: theme.stats.downloadCount,
     updatedAt: theme.updatedAt,
+    coverImage: firstImage ? toThemeImageDTO(firstImage) : null,
+  };
+}
+
+export function toThemeSummaryDTO(theme: ThemeRecord): ThemeSummaryDTO {
+  const [firstImage] = theme.images;
+  return {
+    id: theme._id.toString(),
+    name: theme.name,
+    slug: theme.slug,
+    status: theme.status,
     coverImage: firstImage ? toThemeImageDTO(firstImage) : null,
   };
 }

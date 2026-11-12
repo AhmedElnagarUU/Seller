@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
+import { OwnershipModel, type OwnershipRecord } from "@/features/ownerships/ownership.model";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
 import type { ChangeType } from "@/features/versions/version.constants";
@@ -113,4 +114,31 @@ export async function createVersion(themeId: string, overrides: VersionOverrides
     themeId: new Types.ObjectId(themeId),
   });
   return version.toObject();
+}
+
+type OwnershipOverrides = Partial<Omit<OwnershipRecord, "_id" | "userId" | "themeId">>;
+
+// An active admin grant of a theme to a user. For a revoked one pass `status`, `revokedAt`, `revokedReason`
+// and the fields they require.
+export async function createOwnership(
+  userId: string,
+  themeId: string,
+  overrides: OwnershipOverrides = {},
+): Promise<OwnershipRecord> {
+  const ownership = await OwnershipModel.create({
+    status: "active",
+    source: "admin_grant",
+    orderId: null,
+    grantedByUserId: new Types.ObjectId(),
+    grantNote: null,
+    licenseType: "standard",
+    revokedAt: null,
+    revokedReason: null,
+    revokedByUserId: null,
+    revokeNote: null,
+    ...overrides,
+    userId: new Types.ObjectId(userId),
+    themeId: new Types.ObjectId(themeId),
+  });
+  return ownership.toObject();
 }

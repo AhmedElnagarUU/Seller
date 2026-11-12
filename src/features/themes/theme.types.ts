@@ -11,6 +11,15 @@ export type ThemeImageDTO = {
 // The admin also needs the key, to remove, reorder and describe an image.
 export type ThemeAdminImageDTO = ThemeImageDTO & { key: string };
 
+// The few theme fields that account pages need (the themes a customer owns), in any status.
+export type ThemeSummaryDTO = {
+  id: string;
+  name: string;
+  slug: string;
+  status: ThemeStatus;
+  coverImage: ThemeImageDTO | null;
+};
+
 export type ThemeCardDTO = {
   id: string;
   slug: string;

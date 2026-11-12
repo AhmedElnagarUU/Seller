@@ -17,6 +17,7 @@ import {
   toThemeAdminListItemDTO,
   toThemeCardDTO,
   toThemeDetailDTO,
+  toThemeSummaryDTO,
 } from "@/features/themes/theme.mapper";
 import type { ThemeRecord } from "@/features/themes/theme.model";
 import * as themeRepository from "@/features/themes/theme.repository";
@@ -29,6 +30,7 @@ import type {
   ThemeCardDTO,
   ThemeDetailDTO,
   ThemePageDTO,
+  ThemeSummaryDTO,
 } from "@/features/themes/theme.types";
 
 type PublishedThemesInput = {
@@ -130,6 +132,18 @@ export async function setLatestVersion(
 export async function getThemeForAdmin(id: string): Promise<ThemeAdminDTO | null> {
   const theme = await themeRepository.findThemeById(id);
   return theme ? toThemeAdminDTO(theme) : null;
+}
+
+// The summaries of the themes with these ids, any status. Unknown and invalid ids are left out.
+export async function listThemeSummariesByIds(themeIds: string[]): Promise<ThemeSummaryDTO[]> {
+  const themes = await themeRepository.findThemesByIds(themeIds);
+  return themes.map(toThemeSummaryDTO);
+}
+
+// Adds 1 to the download counter of a theme (docs/07-delivery-updates.md 7.1).
+export async function incrementDownloadCount(themeId: string): Promise<void> {
+  const wasFound = await themeRepository.incrementThemeDownloadCount(themeId);
+  if (!wasFound) throw new AppError("NOT_FOUND", "Theme not found.");
 }
 
 // One page of themes for the admin list, newest created first.

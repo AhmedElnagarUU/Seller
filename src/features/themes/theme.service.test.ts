@@ -6,7 +6,9 @@ import {
   getHomePageData,
   getPublishedThemeBySlug,
   getThemeForAdmin,
+  incrementDownloadCount,
   listPublishedThemes,
+  listThemeSummariesByIds,
   listThemesForAdmin,
   setLatestVersion,
   updateTheme,
@@ -363,5 +365,69 @@ describe("setLatestVersion", () => {
     await expect(
       setLatestVersion("665f1c2e8f1b2c3d4e5f6a7b", { versionId: versionId.toString(), version: "1.2.0", releasedAt }),
     ).rejects.toMatchObject({ code: "NOT_FOUND", message: "Theme not found." });
+  });
+});
+
+describe("listThemeSummariesByIds", () => {
+  it("returns name, slug, status and cover of the given themes and leaves out unknown and invalid ids", async () => {
+    const withCover = await createThemeRow({
+      name: "Covered",
+      slug: "covered",
+      status: "unpublished",
+      images: [{ key: "theme-images/abc/1.png", alt: "Cover alt", width: 800, height: 600 }],
+    });
+    const withoutCover = await createThemeRow({ name: "Plain", slug: "plain", status: "published" });
+    await createThemeRow({ name: "Not asked" });
+
+    const summaries = await listThemeSummariesByIds([
+      withCover._id.toString(),
+      withoutCover._id.toString(),
+      "665f1c2e8f1b2c3d4e5f6a7b",
+      "nope",
+    ]);
+
+    const byName = new Map(summaries.map((summary) => [summary.name, summary]));
+    expect(summaries).toHaveLength(2);
+    expect(byName.get("Covered")).toEqual({
+      id: withCover._id.toString(),
+      name: "Covered",
+      slug: "covered",
+      status: "unpublished",
+      coverImage: {
+        url: "http://localhost:9000/store-images/theme-images/abc/1.png",
+        alt: "Cover alt",
+        width: 800,
+        height: 600,
+      },
+    });
+    expect(byName.get("Plain")).toEqual({
+      id: withoutCover._id.toString(),
+      name: "Plain",
+      slug: "plain",
+      status: "published",
+      coverImage: null,
+    });
+    expect(await listThemeSummariesByIds([])).toEqual([]);
+  });
+});
+
+describe("incrementDownloadCount", () => {
+  it("adds 1 to stats.downloadCount and changes nothing else; an unknown theme is NOT_FOUND", async () => {
+    const theme = await createThemeRow({ status: "published", stats: { salesCount: 3, downloadCount: 7 } });
+    const before = await ThemeModel.findById(theme._id).lean();
+
+    await incrementDownloadCount(theme._id.toString());
+
+    const after = await ThemeModel.findById(theme._id).lean();
+    expect(after?.stats).toEqual({ salesCount: 3, downloadCount: 8 });
+    expect({ ...after, stats: null, updatedAt: null }).toEqual({ ...before, stats: null, updatedAt: null });
+    await expect(incrementDownloadCount("665f1c2e8f1b2c3d4e5f6a7b")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Theme not found.",
+    });
+    await expect(incrementDownloadCount("nope")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Theme not found.",
+    });
   });
 });

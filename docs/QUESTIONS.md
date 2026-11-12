@@ -133,3 +133,21 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-014: `putStoredFile` of T-009 cannot run as written (`import()` does not resolve the `@/` paths of `s3.ts`)
+- Task: T-009
+- Asked by: Claude (implementing agent)
+- Question: The helper in the task uses `await import("@/shared/storage/s3")` and `fetch(..., { body: input.body })`. Under Playwright the first fails with `Cannot find module '@/shared/config/env'` (the `import()` loads `s3.ts` natively, so the `@/` paths inside it are not mapped; static imports work). The second does not pass `pnpm typecheck` (`Buffer` is not accepted as a `BodyInit`). I changed the helper (only in `e2e/helpers.ts`): `createRequire(__filename)("@/shared/storage/s3") as typeof import("@/shared/storage/s3")` and `body: new Uint8Array(input.body)`. Behavior is the same (it still loads `.env` first, so `env.ts` sees the variables).
+- Options I see: A) keep my version and update the snippet in `tasks/T-009-ownerships-downloads.md`. B) another way to load `s3.ts` after `.env` (for example a `.env` loader in `playwright.config.ts`, then a normal static import).
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-015: `downloadLogs` TTL index is in 03 §17 and D-148 but not in the T-009 index list
+- Task: T-009
+- Asked by: Claude (implementing agent)
+- Question: T-009 lists two indexes for `downloadLogs` (`{ userId: 1, createdAt: -1 }`, `{ themeId: 1, createdAt: -1 }`), but 03 §17 and D-148 also have `{ createdAt: 1 }` with `expireAfterSeconds: 31536000` (rows deleted after 1 year), and the task says "Model exactly 03 §17". I added the TTL index (constant `DOWNLOAD_LOG_RETENTION_SECONDS` in `download.constants.ts`, same style as the notification and activity models). No required test covers it.
+- Options I see: A) keep the TTL index (matches 03 §17). B) remove it and update 03 §17 and D-148.
+- Status: OPEN
+- Answer:
+- Doc updated:

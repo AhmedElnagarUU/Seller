@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { crc32, deflateSync } from "node:zlib";
 import mongoose from "mongoose";
 import { expect, type Page } from "@playwright/test";
@@ -113,4 +114,30 @@ export function createZipFile(fileName: string, content: string): Buffer {
   end.writeUInt32LE(centralPart.length, 12);
   end.writeUInt32LE(localPart.length, 16);
   return Buffer.concat([localPart, centralPart, end]);
+}
+
+// Uploads a real file to the local MinIO with the same presigned URL the app creates.
+export async function putStoredFile(input: {
+  bucket: "private" | "public";
+  key: string;
+  contentType: string;
+  body: Buffer;
+}): Promise<void> {
+  if (!process.env.S3_ENDPOINT) process.loadEnvFile(".env");
+  // `import()` does not resolve the "@/" paths inside s3.ts under Playwright, so this loads it with `require`.
+  const { createUploadUrl } = createRequire(__filename)("@/shared/storage/s3") as typeof import("@/shared/storage/s3");
+  const upload = await createUploadUrl({
+    bucket: input.bucket,
+    key: input.key,
+    contentType: input.contentType,
+    sizeBytes: input.body.length,
+    cacheControl: null,
+    expiresInSeconds: 600,
+  });
+  const response = await fetch(upload.url, {
+    method: "PUT",
+    headers: upload.headers,
+    body: new Uint8Array(input.body),
+  });
+  if (!response.ok) throw new Error(`Could not upload the test file (${response.status}).`);
 }

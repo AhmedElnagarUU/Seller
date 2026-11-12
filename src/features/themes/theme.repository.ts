@@ -69,6 +69,14 @@ export async function findThemeById(id: string): Promise<ThemeRecord | null> {
   return ThemeModel.findById(objectId).lean<ThemeRecord>();
 }
 
+// Finds the themes with these ids, any status. Invalid and unknown ids are ignored.
+export async function findThemesByIds(ids: string[]): Promise<ThemeRecord[]> {
+  const objectIds = ids.flatMap((id) => parseObjectId(id) ?? []);
+  if (objectIds.length === 0) return [];
+  await connectDB();
+  return ThemeModel.find({ _id: { $in: objectIds } }).lean<ThemeRecord[]>();
+}
+
 // Finds a theme by slug, any status, or null.
 export async function findThemeBySlug(slug: string): Promise<ThemeRecord | null> {
   await connectDB();
@@ -165,5 +173,14 @@ export async function updateLatestVersion(
     },
     { session },
   );
+  return result.matchedCount === 1;
+}
+
+// Adds 1 to the download counter of a theme. Returns false when the theme does not exist (or the id is invalid).
+export async function incrementThemeDownloadCount(themeId: string): Promise<boolean> {
+  const objectId = parseObjectId(themeId);
+  if (!objectId) return false;
+  await connectDB();
+  const result = await ThemeModel.updateOne({ _id: objectId }, { $inc: { "stats.downloadCount": 1 } });
   return result.matchedCount === 1;
 }
