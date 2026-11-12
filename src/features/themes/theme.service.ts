@@ -1,3 +1,4 @@
+import type { ClientSession } from "mongoose";
 import { AppError } from "@/shared/errors";
 import {
   DEFAULT_THEME_SORT,
@@ -113,6 +114,16 @@ export async function updateTheme(id: string, input: ThemeInput): Promise<void> 
   } catch (error) {
     throwSlugConflict(error);
   }
+}
+
+// Writes the copy of the newest version on the theme. Only this function writes `latestVersion`.
+export async function setLatestVersion(
+  themeId: string,
+  latestVersion: themeRepository.LatestVersionFields,
+  session?: ClientSession,
+): Promise<void> {
+  const wasFound = await themeRepository.updateLatestVersion(themeId, latestVersion, session);
+  if (!wasFound) throw new AppError("NOT_FOUND", "Theme not found.");
 }
 
 // Finds a theme for the admin edit page, any status, or null.

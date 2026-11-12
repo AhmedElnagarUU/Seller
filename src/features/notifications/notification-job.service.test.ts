@@ -5,6 +5,7 @@ import {
   createAnnouncementJob,
   createThemePublishedJob,
   createVersionReleasedJob,
+  getJobSummaries,
 } from "@/features/notifications/notification-job.service";
 import type { AnnouncementJobInput } from "@/features/notifications/notification.types";
 import { withTransaction } from "@/shared/db/transaction";
@@ -185,5 +186,36 @@ describe("job functions", () => {
 
     await expect(attempt).rejects.toThrow(new Error("boom"));
     expect(await NotificationJobModel.countDocuments()).toBe(0);
+  });
+});
+
+describe("getJobSummaries", () => {
+  it("returns one summary per known job id", async () => {
+    const first = await createVersionReleasedJob(await buildVersionInput());
+    const second = await createAnnouncementJob(await buildAnnouncementInput());
+    await NotificationJobModel.updateOne(
+      { _id: second.id },
+      { $set: { status: "failed", notifiedCount: 4, emailedCount: 2, error: "Email provider is down" } },
+    );
+    const unknownId = new Types.ObjectId().toString();
+
+    const summaries = await getJobSummaries([first.id, second.id, unknownId, "nope"]);
+
+    expect([...summaries.keys()].sort()).toEqual([first.id, second.id].sort());
+    expect(summaries.get(first.id)).toEqual({
+      id: first.id,
+      status: "pending",
+      notifiedCount: 0,
+      emailedCount: 0,
+      error: null,
+    });
+    expect(summaries.get(second.id)).toEqual({
+      id: second.id,
+      status: "failed",
+      notifiedCount: 4,
+      emailedCount: 2,
+      error: "Email provider is down",
+    });
+    expect(summaries.has(unknownId)).toBe(false);
   });
 });

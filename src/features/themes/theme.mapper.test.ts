@@ -125,3 +125,19 @@ describe("toThemeAdminListItemDTO", () => {
     expect(toThemeAdminListItemDTO(withoutImages).coverImage).toBeNull();
   });
 });
+
+describe("toThemeAdminDTO", () => {
+  it("has the latest version string, or null without versions", async () => {
+    const withVersion = await createTheme({
+      latestVersion: {
+        versionId: new Types.ObjectId(),
+        version: "1.4.0",
+        releasedAt: new Date("2026-03-01T10:00:00Z"),
+      },
+    });
+    const withoutVersion = await createTheme();
+
+    expect(toThemeAdminDTO(withVersion).latestVersion).toBe("1.4.0");
+    expect(toThemeAdminDTO(withoutVersion).latestVersion).toBeNull();
+  });
+});

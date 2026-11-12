@@ -1,7 +1,10 @@
+import { Types } from "mongoose";
 import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
+import type { ChangeType } from "@/features/versions/version.constants";
+import { VersionModel, type VersionRecord } from "@/features/versions/version.model";
 import { now } from "@/shared/lib/clock";
 
 // Test data with valid defaults. Every factory takes overrides for the fields a test cares about.
@@ -85,4 +88,29 @@ export async function createActivityLog(
     ...overrides,
   });
   return activityLog.toObject();
+}
+
+type VersionOverrides = Partial<Omit<VersionRecord, "_id" | "themeId" | "changes">> & {
+  changes?: { type: ChangeType; text: string }[];
+};
+
+// One version row of a theme. It does NOT touch the theme (`latestVersion` stays as it is).
+export async function createVersion(themeId: string, overrides: VersionOverrides = {}): Promise<VersionRecord> {
+  const number = nextNumber();
+  const version = await VersionModel.create({
+    version: "1.0.0",
+    changes: [{ type: "new", text: "First release" }],
+    file: {
+      key: `theme-zips/${themeId}/${String(number).padStart(16, "0")}.zip`,
+      sizeBytes: 1000,
+      sha256: "a".repeat(64),
+      originalName: "theme.zip",
+    },
+    releasedAt: now(),
+    notifyRequested: false,
+    notificationJobId: null,
+    ...overrides,
+    themeId: new Types.ObjectId(themeId),
+  });
+  return version.toObject();
 }

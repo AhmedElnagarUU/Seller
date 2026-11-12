@@ -68,3 +68,49 @@ export function createPngFile(width: number, height: number): Buffer {
     pngChunk("IEND", Buffer.alloc(0)),
   ]);
 }
+
+const DOS_DATE_1980_01_01 = 33;
+
+// A real .zip file with one stored (not compressed) file inside.
+export function createZipFile(fileName: string, content: string): Buffer {
+  const name = Buffer.from(fileName, "utf8");
+  const data = Buffer.from(content, "utf8");
+  const checksum = crc32(data);
+
+  const localHeader = Buffer.alloc(30);
+  localHeader.writeUInt32LE(0x04034b50, 0);
+  localHeader.writeUInt16LE(20, 4); // version needed
+  localHeader.writeUInt16LE(0, 6); // flags
+  localHeader.writeUInt16LE(0, 8); // method: stored
+  localHeader.writeUInt16LE(0, 10); // time
+  localHeader.writeUInt16LE(DOS_DATE_1980_01_01, 12);
+  localHeader.writeUInt32LE(checksum, 14);
+  localHeader.writeUInt32LE(data.length, 18); // compressed size
+  localHeader.writeUInt32LE(data.length, 22); // size
+  localHeader.writeUInt16LE(name.length, 26);
+  localHeader.writeUInt16LE(0, 28); // extra length
+  const localPart = Buffer.concat([localHeader, name, data]);
+
+  const centralHeader = Buffer.alloc(46);
+  centralHeader.writeUInt32LE(0x02014b50, 0);
+  centralHeader.writeUInt16LE(20, 4); // version made by
+  centralHeader.writeUInt16LE(20, 6); // version needed
+  centralHeader.writeUInt16LE(0, 8); // flags
+  centralHeader.writeUInt16LE(0, 10); // method
+  centralHeader.writeUInt16LE(0, 12); // time
+  centralHeader.writeUInt16LE(DOS_DATE_1980_01_01, 14);
+  centralHeader.writeUInt32LE(checksum, 16);
+  centralHeader.writeUInt32LE(data.length, 20);
+  centralHeader.writeUInt32LE(data.length, 24);
+  centralHeader.writeUInt16LE(name.length, 28);
+  centralHeader.writeUInt32LE(0, 42); // offset of the local header
+  const centralPart = Buffer.concat([centralHeader, name]);
+
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(1, 8); // entries on this disk
+  end.writeUInt16LE(1, 10); // entries in total
+  end.writeUInt32LE(centralPart.length, 12);
+  end.writeUInt32LE(localPart.length, 16);
+  return Buffer.concat([localPart, centralPart, end]);
+}

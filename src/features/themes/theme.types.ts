@@ -50,6 +50,7 @@ export type ThemeAdminDTO = {
   featured: boolean;
   publishedAt: Date | null;
   images: ThemeAdminImageDTO[];
+  latestVersion: string | null;
 };
 
 export type ThemeAdminListItemDTO = {

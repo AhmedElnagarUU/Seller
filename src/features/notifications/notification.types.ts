@@ -1,4 +1,4 @@
-import type { AnnouncementAudience } from "@/features/notifications/notification.constants";
+import type { AnnouncementAudience, NotificationJobStatus } from "@/features/notifications/notification.constants";
 
 // The text of one in-app notification.
 export type NotificationText = { title: string; body: string; link: string | null };
@@ -24,4 +24,13 @@ export type AnnouncementJobInput = {
   audienceThemeId: string | null;
   audienceUserId: string | null;
   createdByUserId: string;
+};
+
+// What the admin sees of a job next to a version.
+export type NotificationJobSummaryDTO = {
+  id: string;
+  status: NotificationJobStatus;
+  notifiedCount: number;
+  emailedCount: number;
+  error: string | null;
 };

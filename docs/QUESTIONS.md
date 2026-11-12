@@ -124,3 +124,12 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-013: `ChangesEditor` needs controlled fields, but `SelectField` and `TextField` have no `onChange`
+- Task: T-008
+- Asked by: Claude (implementing agent)
+- Question: `ChangesEditor` (props `changes`, `onChange`) must report every typed character and every chosen type to its parent, but the UI kit's `SelectField` and `TextField` only take `defaultValue` and have no `onChange`. Changing the kit is not in the T-008 file list. I wrapped each row in a plain `<div onChange>` that listens to the change events bubbling up from the two fields, and gave each row a stable `rowId` (so removing a row does not shift the typed values of the others). It works (e2e passes), but it is not the usual React way.
+- Options I see: A) keep the wrapper `<div onChange>`. B) add an optional `onChange` prop to `SelectField` and `TextField` in the UI kit and use it in `ChangesEditor`.
+- Status: OPEN
+- Answer:
+- Doc updated:

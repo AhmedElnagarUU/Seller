@@ -41,3 +41,10 @@ export const INTERNAL_PATH_PATTERN = /^\/(?!\/)/;
 // 1 year.
 export const NOTIFICATION_RETENTION_SECONDS = 31_536_000;
 export const JOB_ERROR_MAX = 500;
+
+export const NOTIFICATION_JOB_STATUS_LABELS: Record<NotificationJobStatus, string> = {
+  pending: "Pending",
+  running: "Running",
+  done: "Done",
+  failed: "Failed",
+};

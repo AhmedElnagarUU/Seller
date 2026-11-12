@@ -1,5 +1,6 @@
 import type { ClientSession, Types } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
+import { parseObjectId } from "@/shared/db/ids";
 import type {
   AnnouncementAudience,
   NotificationJobKind,
@@ -48,4 +49,11 @@ export async function insertNotificationJob(
   const [created] = await NotificationJobModel.create([fields], { session });
   if (!created) throw new Error("The notification job was not created.");
   return created.toObject();
+}
+
+// Finds the jobs with these ids. Ids that are not valid are ignored.
+export async function findNotificationJobsByIds(ids: string[]): Promise<NotificationJobRecord[]> {
+  const objectIds = ids.map((id) => parseObjectId(id)).filter((objectId) => objectId !== null);
+  await connectDB();
+  return NotificationJobModel.find({ _id: { $in: objectIds } }).lean<NotificationJobRecord[]>();
 }

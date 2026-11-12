@@ -12,6 +12,7 @@ import { ThemeForm } from "@/features/themes/components/admin/ThemeForm";
 import { ThemeImagesManager } from "@/features/themes/components/admin/ThemeImagesManager";
 import { THEME_STATUS_LABELS } from "@/features/themes/theme.constants";
 import { getThemeForAdmin } from "@/features/themes/theme.service";
+import { countVersionsForTheme } from "@/features/versions/version.service";
 
 export const metadata: Metadata = {
   title: "Edit theme · Theme Store",
@@ -30,6 +31,7 @@ export default async function EditThemePage({ params, searchParams }: EditThemeP
   const theme = await getThemeForAdmin(id);
   if (!theme) notFound();
   const categories = await listCategoriesForAdmin();
+  const versionCount = await countVersionsForTheme(theme.id);
   const categoryOptions = categories.map((category) => ({ value: category.id, label: category.name }));
 
   return (
@@ -42,6 +44,7 @@ export default async function EditThemePage({ params, searchParams }: EditThemeP
       </Inline>
       <ThemeForm theme={theme} categoryOptions={categoryOptions} />
       <ThemeImagesManager themeId={theme.id} images={theme.images} />
+      <TextLink href={`/admin/themes/${theme.id}/versions`}>Versions ({versionCount})</TextLink>
     </Stack>
   );
 }

@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
 import { ThemeModel } from "@/features/themes/theme.model";
 import {
@@ -7,6 +8,7 @@ import {
   getThemeForAdmin,
   listPublishedThemes,
   listThemesForAdmin,
+  setLatestVersion,
   updateTheme,
 } from "@/features/themes/theme.service";
 import type { ThemeInput } from "@/features/themes/theme.schemas";
@@ -335,5 +337,31 @@ describe("getThemeForAdmin", () => {
     expect(found?.publishedAt).toBeNull();
     expect(await getThemeForAdmin("665f1c2e8f1b2c3d4e5f6a7b")).toBeNull();
     expect(await getThemeForAdmin("not-an-id")).toBeNull();
+  });
+});
+
+describe("setLatestVersion", () => {
+  it("writes only latestVersion", async () => {
+    const theme = await createThemeRow({
+      status: "published",
+      images: [{ key: "theme-images/seeded/1.png", alt: "Alt", width: 800, height: 600 }],
+      stats: { salesCount: 3, downloadCount: 7 },
+    });
+    const versionId = new Types.ObjectId();
+    const releasedAt = new Date("2026-03-01T10:00:00Z");
+
+    await setLatestVersion(theme._id.toString(), { versionId: versionId.toString(), version: "1.2.0", releasedAt });
+
+    const saved = await ThemeModel.findById(theme._id).lean();
+    expect(saved?.latestVersion?.versionId.toString()).toBe(versionId.toString());
+    expect(saved?.latestVersion?.version).toBe("1.2.0");
+    expect(saved?.latestVersion?.releasedAt).toEqual(releasedAt);
+    expect(saved?.status).toBe("published");
+    expect(saved?.stats).toEqual({ salesCount: 3, downloadCount: 7 });
+    expect(saved?.images).toEqual(theme.images);
+
+    await expect(
+      setLatestVersion("665f1c2e8f1b2c3d4e5f6a7b", { versionId: versionId.toString(), version: "1.2.0", releasedAt }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND", message: "Theme not found." });
   });
 });

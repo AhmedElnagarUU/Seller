@@ -1,4 +1,4 @@
-import type { SortOrder } from "mongoose";
+import type { ClientSession, SortOrder } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
 import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import { escapeRegex } from "@/shared/lib/regex";
@@ -140,4 +140,30 @@ export async function replaceThemeImages(themeId: string, images: ThemeImageFiel
 export async function setThemeImageAlt(themeId: string, key: string, alt: string): Promise<void> {
   await connectDB();
   await ThemeModel.updateOne({ _id: toObjectId(themeId), "images.key": key }, { $set: { "images.$.alt": alt } });
+}
+
+// The newest version's key data. Only the versions feature writes it, through `setLatestVersion` of the themes service.
+export type LatestVersionFields = { versionId: string; version: string; releasedAt: Date };
+
+// Writes the copy of the newest version on the theme. Returns false when the theme does not exist.
+export async function updateLatestVersion(
+  themeId: string,
+  latestVersion: LatestVersionFields,
+  session?: ClientSession,
+): Promise<boolean> {
+  await connectDB();
+  const result = await ThemeModel.updateOne(
+    { _id: toObjectId(themeId) },
+    {
+      $set: {
+        latestVersion: {
+          versionId: toObjectId(latestVersion.versionId),
+          version: latestVersion.version,
+          releasedAt: latestVersion.releasedAt,
+        },
+      },
+    },
+    { session },
+  );
+  return result.matchedCount === 1;
 }

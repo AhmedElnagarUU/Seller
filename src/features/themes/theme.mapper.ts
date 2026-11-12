@@ -69,6 +69,7 @@ export function toThemeAdminDTO(theme: ThemeRecord): ThemeAdminDTO {
     featured: theme.featured,
     publishedAt: theme.publishedAt ?? null,
     images: theme.images.map(toThemeAdminImageDTO),
+    latestVersion: theme.latestVersion?.version ?? null,
   };
 }
 

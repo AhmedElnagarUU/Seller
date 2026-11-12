@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageContainer } from "@/shared/layout/PageContainer";
+import { Stack } from "@/shared/layout/Stack";
 import { ThemeDetail } from "@/features/themes/components/ThemeDetail";
 import { getPublishedThemeBySlug } from "@/features/themes/theme.service";
+import { Changelog } from "@/features/versions/components/Changelog";
+import { listVersionsForTheme } from "@/features/versions/version.service";
 
 type ThemePageProps = {
   params: Promise<{ slug: string }>;
@@ -26,7 +29,10 @@ export default async function ThemePage({ params }: ThemePageProps) {
 
   return (
     <PageContainer width="wide">
-      <ThemeDetail theme={theme} />
+      <Stack gap="xl">
+        <ThemeDetail theme={theme} />
+        <Changelog versions={await listVersionsForTheme(theme.id)} />
+      </Stack>
     </PageContainer>
   );
 }

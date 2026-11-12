@@ -1,9 +1,11 @@
 import type { ClientSession } from "mongoose";
 import { toObjectId } from "@/shared/db/ids";
+import { toNotificationJobSummaryDTO } from "@/features/notifications/notification-job.mapper";
 import * as notificationJobRepository from "@/features/notifications/notification-job.repository";
 import type { AnnouncementFields } from "@/features/notifications/notification-job.repository";
 import type {
   AnnouncementJobInput,
+  NotificationJobSummaryDTO,
   ThemePublishedJobInput,
   VersionReleasedJobInput,
 } from "@/features/notifications/notification.types";
@@ -103,4 +105,14 @@ export async function createAnnouncementJob(
     session,
   );
   return { id: created._id.toString() };
+}
+
+// The summary of each known job, by job id. Unknown ids are missing from the map.
+export async function getJobSummaries(jobIds: string[]): Promise<Map<string, NotificationJobSummaryDTO>> {
+  const records = await notificationJobRepository.findNotificationJobsByIds(jobIds);
+  const summaries = new Map<string, NotificationJobSummaryDTO>();
+  for (const record of records) {
+    summaries.set(record._id.toString(), toNotificationJobSummaryDTO(record));
+  }
+  return summaries;
 }
