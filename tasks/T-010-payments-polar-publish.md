@@ -9,7 +9,7 @@
 
 1. The `PaymentProvider` interface, its two implementations (Polar and the fake provider) and the test fake.
 2. Every theme is mirrored as a Polar product (create, and update when name, tagline or price change).
-3. The admin can publish and unpublish a theme, with the publish checklist and the "Retry sync" button.
+3. The admin can publish and unpublish a theme, with the publish checklist and the "Sync now" button.
 
 **Not in this task** (later tasks): coupons and `upsertDiscount` callers (T-011), checkout, webhook route,
 `processPaymentEvent`, orders, `simulateFakeRefund`, the fake checkout page (T-012). `upsertDiscount`,
@@ -54,7 +54,7 @@ Field names in requests and responses are `snake_case` (`success_url`, `price_am
 | `POLAR_ACCESS_TOKEN` | optional string; **required when `PAYMENT_PROVIDER=polar`** | empty | `polar_oat_test_token` | — |
 | `POLAR_WEBHOOK_SECRET` | optional string; **required when `PAYMENT_PROVIDER=polar`** | empty | `whsec_test_secret_for_unit_tests` | — |
 
-`[PLANNER: the docs do not say how strict POLAR_* are. Recommended: required only when PAYMENT_PROVIDER=polar (same pattern as RESEND_API_KEY / EMAIL_TRANSPORT). Confirm or change.]`
+`[DECIDED by owner: required only when PAYMENT_PROVIDER=polar.]`
 
 Extra rules in the existing `superRefine` of `env.ts` (same style as the console-email rule):
 
@@ -115,7 +115,7 @@ Copy the types of `06-payments.md` section 2 exactly (`ProviderName`, `Normalize
 export class WebhookPayloadError extends Error {}
 ```
 
-`[PLANNER: 06 §6.1 says "Body not valid → 400" but defines no error class for it. Recommended: this class. Confirm.]`
+`[DECIDED by owner: add WebhookPayloadError as above.]`
 
 ## `payment.provider.ts`
 
@@ -264,7 +264,7 @@ Messages (`THEME_PUBLISH_MESSAGES` in `theme.constants.ts`):
 | `unpublished` (action message) | `Theme unpublished.` |
 | `synced` (action message) | `Theme synced.` |
 
-`[PLANNER: 03 §5 defines the publish rules but no error messages, and no action messages. All texts in this table except notFound are proposals. Confirm or change.]`
+`[DECIDED by owner: the texts in this table are confirmed.]`
 
 | Function | Rules |
 |---|---|
@@ -274,7 +274,7 @@ Messages (`THEME_PUBLISH_MESSAGES` in `theme.constants.ts`):
 
 `PublishChecklistDTO = { status: ThemeStatus; hasVersion: boolean; hasImage: boolean; isSynced: boolean; canPublish: boolean }` in `theme.types.ts`.
 
-`[PLANNER: activity summaries are not in the docs except the example "Order paid: Aurora Blog ($29.00)". The pattern "<Event>: <Theme name>" above is a proposal; confirm for T-010 … T-013.]`
+`[DECIDED by owner: the pattern "<Event>: <Theme name>" applies to T-010 … T-013.]`
 
 ## Actions (`theme-publish.actions.ts`)
 
@@ -296,11 +296,11 @@ In `src/app/admin/themes/[id]/page.tsx` add **only** this: call `getPublishCheck
 
 - `PublishChecklist.tsx` (server component, props `{ checklist: PublishChecklistDTO }`): a `Card` with Heading level 3 `Publish checklist` and three rows, each an `Inline` with `Badge` (`tone="success"` and text `✓`, or `tone="danger"` and text `✗`) and a `Text`: `At least one version`, `At least one image`, `Synced to Polar`. When `isSynced` is `false`, a `Text tone="danger"` below the rows: `Not synced with payment provider`.
 - `PublishPanel.tsx` (`"use client"`, props `{ themeId: string; checklist: PublishChecklistDTO }`): renders `PublishChecklist`, then
-  - when `!isSynced`: a form (`useActionState(syncThemeAction, null)`) with hidden `id` and `SubmitButton variant="secondary"` text `Retry sync` / pending `Syncing…`;
+  - when `!isSynced`: a form (`useActionState(syncThemeAction, null)`) with hidden `id` and `SubmitButton variant="secondary"` text `Sync now` / pending `Syncing…`;
   - when `status === "published"`: a form with `unpublishThemeAction` and `SubmitButton variant="danger"` `Unpublish` / `Unpublishing…`;
   - otherwise: a form with `publishThemeAction`; when `canPublish` is `false` render `<Button disabled>Publish</Button>` instead of the submit button; when true `SubmitButton` `Publish` / `Publishing…`;
   - each form shows `FormError` (`state?.ok === false ? state.error : null`) and, on success, `Alert tone="success"` with `state.message`.
-  `[PLANNER: 05 §5 calls the button "Sync now", 06 §3.1 calls it "Retry sync". Recommended: "Retry sync" (06). Confirm.]`
+  `[DECIDED: "Sync now" (05 §5; 06 §3.1 was changed to match in commit fc89d3a).]`
 
 ## Existing tests that change (behaviour changed on purpose)
 
@@ -374,7 +374,7 @@ In `theme.service.test.ts`, test `createTheme › saves a draft with price in ce
 Helpers from `e2e/helpers.ts` (created by T-005): `ADMIN_EMAIL`, `readMongoUri`, `registerAs(page, email)`, `removeAdminAccount()`. `playwright.config.ts` already runs one worker (T-005), so specs can share the admin account.
 Seed in `beforeAll` (same style as `catalog.spec.ts`): `mongoose.connect(readMongoUri())`, `removeAdminAccount()`, create a category and a **draft** theme with `ThemeModel.create` that has one image, a `latestVersion` (`{ versionId: new mongoose.Types.ObjectId(), version: "1.0.0", releasedAt: new Date() }`) and `provider: { productId: null, syncedAt: null }`.
 - [ ] the admin registers, opens `/admin/themes/<id>`, sees `Not synced with payment provider` and a disabled `Publish` button
-- [ ] the admin clicks `Retry sync` → the text `Not synced with payment provider` disappears; `Publish` is enabled
+- [ ] the admin clicks `Sync now` → the text `Not synced with payment provider` disappears; `Publish` is enabled
 - [ ] the admin clicks `Publish` → `Theme published.` appears and `/themes?q=<theme name>` shows the theme card
 
 Break check (≥ 3): remove the `productId` check in `publishTheme`; call the provider on every `updateTheme` (remove the changed-fields condition); remove the `isFirstPublish` condition around `createThemePublishedJob`; remove the `status` filter in `markThemePublished`.
