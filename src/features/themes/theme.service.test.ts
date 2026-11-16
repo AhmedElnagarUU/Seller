@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ThemeModel } from "@/features/themes/theme.model";
 import {
   createTheme,
@@ -15,6 +15,7 @@ import {
 } from "@/features/themes/theme.service";
 import type { ThemeInput } from "@/features/themes/theme.schemas";
 import { setTestNow } from "@/shared/lib/clock";
+import { fakePaymentProvider } from "@/shared/test/fakes/fake-payment-provider";
 import { createCategory, createTheme as createThemeRow } from "@/shared/test/factories";
 
 async function buildInput(overrides: Partial<ThemeInput> = {}): Promise<ThemeInput> {
@@ -42,6 +43,7 @@ function namesOf(items: { name: string }[]): string[] {
 
 describe("createTheme", () => {
   it("saves a draft with price in cents", async () => {
+    setTestNow(new Date("2026-11-01T10:00:00Z"));
     const input = await buildInput();
 
     const { id } = await createTheme(input);
@@ -54,7 +56,8 @@ describe("createTheme", () => {
     expect(saved?.latestVersion).toBeNull();
     expect(saved?.publishedAt).toBeNull();
     expect(saved?.stats).toEqual({ salesCount: 0, downloadCount: 0 });
-    expect(saved?.provider).toEqual({ productId: null, syncedAt: null });
+    expect(saved?.provider.productId).toBe("fake_prod_" + id);
+    expect(saved?.provider.syncedAt).toEqual(new Date("2026-11-01T10:00:00Z"));
     expect(saved?.requirements).toEqual({ wordpressMin: "6.4", phpMin: "8.1", testedUpTo: "6.8" });
   });
 
@@ -429,5 +432,87 @@ describe("incrementDownloadCount", () => {
       code: "NOT_FOUND",
       message: "Theme not found.",
     });
+  });
+});
+
+describe("createTheme provider sync", () => {
+  it("syncs the new theme: the provider call has existingProductId null and the database has the product id", async () => {
+    const input = await buildInput();
+
+    const { id } = await createTheme(input);
+
+    expect(fakePaymentProvider.calls).toEqual([
+      {
+        method: "upsertProduct",
+        input: {
+          themeId: id,
+          name: "Aurora Blog",
+          tagline: "A calm theme for writers",
+          priceCents: 2900,
+          existingProductId: null,
+        },
+      },
+    ]);
+    const saved = await ThemeModel.findById(id).lean();
+    expect(saved?.provider.productId).toBe("fake_prod_" + id);
+  });
+
+  it("keeps the theme when the sync fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    fakePaymentProvider.failNext(new Error("Polar is down"));
+    const input = await buildInput();
+
+    try {
+      const { id } = await createTheme(input);
+
+      expect(await ThemeModel.countDocuments()).toBe(1);
+      const saved = await ThemeModel.findById(id).lean();
+      expect(saved?.name).toBe("Aurora Blog");
+      expect(saved?.provider.productId).toBeNull();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+});
+
+describe("updateTheme provider sync", () => {
+  async function createSyncedTheme() {
+    const input = await buildInput();
+    const { id } = await createTheme(input);
+    fakePaymentProvider.reset();
+    return { id, input };
+  }
+
+  it("syncs with the existing product id when the price changed", async () => {
+    const { id, input } = await createSyncedTheme();
+
+    await updateTheme(id, { ...input, priceCents: 4900 });
+
+    expect(fakePaymentProvider.calls).toEqual([
+      {
+        method: "upsertProduct",
+        input: {
+          themeId: id,
+          name: "Aurora Blog",
+          tagline: "A calm theme for writers",
+          priceCents: 4900,
+          existingProductId: "fake_prod_" + id,
+        },
+      },
+    ]);
+  });
+
+  it("does not call the provider when only the description or featured changed", async () => {
+    const { id, input } = await createSyncedTheme();
+
+    await updateTheme(id, {
+      ...input,
+      description: "Another long description of this theme. It also has more than fifty characters.",
+      featured: true,
+    });
+
+    expect(fakePaymentProvider.calls).toEqual([]);
+    const saved = await ThemeModel.findById(id).lean();
+    expect(saved?.featured).toBe(true);
   });
 });

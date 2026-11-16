@@ -21,6 +21,7 @@ jobs:
       PUBLIC_IMAGES_BASE_URL: http://localhost:9000/store-images
       ENABLE_DEV_PAGES: "true"
       APP_ENV: ci
+      PAYMENT_PROVIDER: fake
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

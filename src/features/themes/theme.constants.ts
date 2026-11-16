@@ -51,3 +51,16 @@ export const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 export const HTTPS_PREFIX_PATTERN = /^https:\/\//;
 // A MongoDB ObjectId written as text.
 export const OBJECT_ID_PATTERN = /^[a-f0-9]{24}$/i;
+
+export const THEME_PUBLISH_MESSAGES = {
+  notFound: "Theme not found.",
+  alreadyPublished: "This theme is already published.",
+  notPublished: "Only a published theme can be unpublished.",
+  noVersion: "Upload at least one version before publishing.",
+  noImage: "Add at least one image before publishing.",
+  notSynced: "Sync the theme with the payment provider before publishing.",
+  syncFailed: "The sync did not work. Please try again in a moment.",
+  published: "Theme published.",
+  unpublished: "Theme unpublished.",
+  synced: "Theme synced.",
+} as const;

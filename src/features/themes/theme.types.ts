@@ -87,3 +87,12 @@ export type HomePageDataDTO = {
   newest: ThemeCardDTO[];
   categories: CategoryWithCountDTO[];
 };
+
+// What the admin sees before publishing a theme.
+export type PublishChecklistDTO = {
+  status: ThemeStatus;
+  hasVersion: boolean;
+  hasImage: boolean;
+  isSynced: boolean;
+  canPublish: boolean;
+};

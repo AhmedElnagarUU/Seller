@@ -31,6 +31,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().min(1),
   SUPPORT_EMAIL: z.email(),
+  PAYMENT_PROVIDER: z.enum(["polar", "fake"]),
+  POLAR_SERVER: z.enum(["sandbox", "production"]).default("sandbox"),
+  POLAR_ACCESS_TOKEN: z.string().optional(),
+  POLAR_WEBHOOK_SECRET: z.string().optional(),
 });
 
 const envSchemaWithRules = envSchema.superRefine((value, context) => {
@@ -46,6 +50,27 @@ const envSchemaWithRules = envSchema.superRefine((value, context) => {
       code: "custom",
       path: ["RESEND_API_KEY"],
       message: "RESEND_API_KEY is required when EMAIL_TRANSPORT=resend",
+    });
+  }
+  if (value.PAYMENT_PROVIDER === "fake" && value.APP_ENV === "production") {
+    context.addIssue({
+      code: "custom",
+      path: ["PAYMENT_PROVIDER"],
+      message: "PAYMENT_PROVIDER=fake is not allowed when APP_ENV=production",
+    });
+  }
+  if (value.PAYMENT_PROVIDER === "polar" && !value.POLAR_ACCESS_TOKEN) {
+    context.addIssue({
+      code: "custom",
+      path: ["POLAR_ACCESS_TOKEN"],
+      message: "POLAR_ACCESS_TOKEN is required when PAYMENT_PROVIDER=polar",
+    });
+  }
+  if (value.PAYMENT_PROVIDER === "polar" && !value.POLAR_WEBHOOK_SECRET) {
+    context.addIssue({
+      code: "custom",
+      path: ["POLAR_WEBHOOK_SECRET"],
+      message: "POLAR_WEBHOOK_SECRET is required when PAYMENT_PROVIDER=polar",
     });
   }
 });

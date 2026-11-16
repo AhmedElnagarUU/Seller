@@ -9,9 +9,11 @@ import { TextLink } from "@/shared/ui/TextLink";
 import { requireAdmin } from "@/features/auth/session";
 import { listCategoriesForAdmin } from "@/features/categories/category.service";
 import { ThemeForm } from "@/features/themes/components/admin/ThemeForm";
+import { PublishPanel } from "@/features/themes/components/admin/PublishPanel";
 import { ThemeImagesManager } from "@/features/themes/components/admin/ThemeImagesManager";
 import { THEME_STATUS_LABELS } from "@/features/themes/theme.constants";
 import { getThemeForAdmin } from "@/features/themes/theme.service";
+import { getPublishChecklist } from "@/features/themes/theme-publish.service";
 import { countVersionsForTheme } from "@/features/versions/version.service";
 
 export const metadata: Metadata = {
@@ -30,6 +32,8 @@ export default async function EditThemePage({ params, searchParams }: EditThemeP
   const { created } = await searchParams;
   const theme = await getThemeForAdmin(id);
   if (!theme) notFound();
+  const checklist = await getPublishChecklist(theme.id);
+  if (!checklist) notFound();
   const categories = await listCategoriesForAdmin();
   const versionCount = await countVersionsForTheme(theme.id);
   const categoryOptions = categories.map((category) => ({ value: category.id, label: category.name }));
@@ -42,6 +46,7 @@ export default async function EditThemePage({ params, searchParams }: EditThemeP
         <Badge>{THEME_STATUS_LABELS[theme.status]}</Badge>
         {theme.status === "published" ? <TextLink href={`/themes/${theme.slug}`}>View in store</TextLink> : null}
       </Inline>
+      <PublishPanel themeId={theme.id} checklist={checklist} />
       <ThemeForm theme={theme} categoryOptions={categoryOptions} />
       <ThemeImagesManager themeId={theme.id} images={theme.images} />
       <TextLink href={`/admin/themes/${theme.id}/versions`}>Versions ({versionCount})</TextLink>

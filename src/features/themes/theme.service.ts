@@ -23,6 +23,7 @@ import type { ThemeRecord } from "@/features/themes/theme.model";
 import * as themeRepository from "@/features/themes/theme.repository";
 import type { ThemeQuery } from "@/features/themes/theme.repository";
 import type { ThemeInput } from "@/features/themes/theme.schemas";
+import { syncThemeWithProvider } from "@/features/themes/theme-sync.service";
 import type {
   HomePageDataDTO,
   ThemeAdminDTO,
@@ -94,12 +95,16 @@ function toTotalPages(total: number): number {
 // Creates a draft theme.
 export async function createTheme(input: ThemeInput): Promise<{ id: string }> {
   await assertCategoryExists(input.categoryId);
+  let id: string;
   try {
     const created = await themeRepository.insertTheme(toFields(input));
-    return { id: created._id.toString() };
+    id = created._id.toString();
   } catch (error) {
     return throwSlugConflict(error);
   }
+  // After the theme is saved. A failed sync keeps the theme; the admin can use "Sync now".
+  await syncThemeWithProvider(id);
+  return { id };
 }
 
 // Changes the editable fields of a theme. Status, images, versions, stats and provider stay as they are.
@@ -116,6 +121,9 @@ export async function updateTheme(id: string, input: ThemeInput): Promise<void> 
   } catch (error) {
     throwSlugConflict(error);
   }
+  const hasProviderFieldChanged =
+    input.name !== theme.name || input.tagline !== theme.tagline || input.priceCents !== theme.priceCents;
+  if (hasProviderFieldChanged) await syncThemeWithProvider(id);
 }
 
 // Writes the copy of the newest version on the theme. Only this function writes `latestVersion`.

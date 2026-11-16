@@ -33,6 +33,10 @@ export default defineConfig({
       RESEND_API_KEY: "",
       EMAIL_FROM: "Theme Store <hello@example.com>",
       SUPPORT_EMAIL: "support@example.com",
+      PAYMENT_PROVIDER: "fake",
+      POLAR_SERVER: "sandbox",
+      POLAR_ACCESS_TOKEN: "polar_oat_test_token",
+      POLAR_WEBHOOK_SECRET: "whsec_test_secret_for_unit_tests",
     },
     coverage: {
       provider: "v8",

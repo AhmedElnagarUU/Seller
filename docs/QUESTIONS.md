@@ -151,3 +151,21 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-016: Newer stable `@polar-sh/sdk` 1.x exists than the 1.0.2 named in T-010
+- Task: T-010
+- Asked by: Claude (implementing agent)
+- Question: `npm view @polar-sh/sdk versions` now also lists the stable versions `1.1.0` and `1.3.0` (`latest` is 1.3.0; the planner check of 2026-11-06 saw only up to 1.0.2). The task says to add a question instead of choosing, so I installed exactly `1.0.2` as written. All T-010 code type-checks and its tests pass against 1.0.2 (including real webhook signature checks with `webhooks.validateEvent`).
+- Options I see: A) keep 1.0.2. B) upgrade to 1.3.0 in a later task after reading its changelog.
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-017: The "Theme published." message needs the panel to keep the action states (PublishPanel)
+- Task: T-010
+- Asked by: Claude (implementing agent)
+- Question: The task says each of the three forms in `PublishPanel` runs its own `useActionState` and shows the success `Alert`, and the e2e test expects `Theme published.` to appear. After a successful publish the page is revalidated, `status` becomes `published`, and the Publish form is replaced by the Unpublish form, so a state kept inside the Publish form is lost with it and the message never shows. I kept the three `useActionState` calls in `PublishPanel` (same actions, same messages, same buttons and texts) and let the form that appears after a status change show the success message of the action before it (Unpublish form shows "Theme published.", Publish form shows "Theme unpublished."). The Sync form shows its own result (it disappears after a successful sync, which the e2e test expects). Known small effect: after publish, unpublish, publish again, an old result is replaced by the newest one of the same action only.
+- Options I see: A) keep it as it is. B) change the task text so the panel owns the states. C) show the success message from a `?published=1`-style search parameter like `?created=1` (needs a page change that is not in the task).
+- Status: OPEN
+- Answer:
+- Doc updated:

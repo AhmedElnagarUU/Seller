@@ -184,3 +184,39 @@ export async function incrementThemeDownloadCount(themeId: string): Promise<bool
   const result = await ThemeModel.updateOne({ _id: objectId }, { $inc: { "stats.downloadCount": 1 } });
   return result.matchedCount === 1;
 }
+
+// Saves the link to the payment provider's product. Only `provider.productId` and `provider.syncedAt` change.
+export async function setThemeProvider(id: string, provider: { productId: string; syncedAt: Date }): Promise<void> {
+  await connectDB();
+  await ThemeModel.updateOne(
+    { _id: toObjectId(id) },
+    { $set: { "provider.productId": provider.productId, "provider.syncedAt": provider.syncedAt } },
+  );
+}
+
+// Sets the status to "published" (only from draft or unpublished). `firstPublishedAt` is saved as `publishedAt`
+// when it is not null. Returns false when the theme was not in a status that can be published.
+export async function markThemePublished(
+  id: string,
+  firstPublishedAt: Date | null,
+  session?: ClientSession,
+): Promise<boolean> {
+  await connectDB();
+  const result = await ThemeModel.updateOne(
+    { _id: toObjectId(id), status: { $in: ["draft", "unpublished"] } },
+    { $set: firstPublishedAt ? { status: "published", publishedAt: firstPublishedAt } : { status: "published" } },
+    { session },
+  );
+  return result.modifiedCount === 1;
+}
+
+// Sets the status to "unpublished" (only from published). Returns false when the theme was not published.
+export async function markThemeUnpublished(id: string, session?: ClientSession): Promise<boolean> {
+  await connectDB();
+  const result = await ThemeModel.updateOne(
+    { _id: toObjectId(id), status: "published" },
+    { $set: { status: "unpublished" } },
+    { session },
+  );
+  return result.modifiedCount === 1;
+}
