@@ -1,3 +1,4 @@
+import { isDuplicateKeyError } from "@/shared/db/duplicate-key";
 import { AppError } from "@/shared/errors";
 import {
   toCategoryAdminDTO,
@@ -23,7 +24,7 @@ async function assertNameIsFree(name: string, ownId?: string): Promise<void> {
 
 // Turns a unique-index error (the slug) into the message for the admin. Other errors pass through.
 function throwSlugConflict(error: unknown): never {
-  if (categoryRepository.isDuplicateKeyError(error)) throw new AppError("CONFLICT", "This slug is already used.");
+  if (isDuplicateKeyError(error)) throw new AppError("CONFLICT", "This slug is already used.");
   throw error;
 }
 

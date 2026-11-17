@@ -5,7 +5,7 @@ import { Text } from "@/shared/ui/Text";
 type TextFieldProps = {
   label: string;
   name: string;
-  type?: "text" | "email" | "password" | "url" | "number" | "tel";
+  type?: "text" | "email" | "password" | "url" | "number" | "tel" | "date";
   defaultValue?: string;
   placeholder?: string;
   required?: boolean;

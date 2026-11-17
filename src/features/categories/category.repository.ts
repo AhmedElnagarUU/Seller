@@ -3,15 +3,8 @@ import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import { escapeRegex } from "@/shared/lib/regex";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 
-const MONGO_DUPLICATE_KEY_CODE = 11000;
-
 // The fields an admin can write.
 export type CategoryFields = Pick<CategoryRecord, "name" | "slug" | "description" | "sortOrder">;
-
-// True when MongoDB refused a write because of a unique index.
-export function isDuplicateKeyError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error && error.code === MONGO_DUPLICATE_KEY_CODE;
-}
 
 // Finds a category by id, or null (also when the id is not a valid id).
 export async function findCategoryById(id: string): Promise<CategoryRecord | null> {

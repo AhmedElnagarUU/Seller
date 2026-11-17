@@ -61,6 +61,9 @@ export function createPolarProvider(): PaymentProvider {
         : await client.discounts.create(buildDiscountCreateBody(input));
       return { discountId: discount.id };
     },
+    async deleteDiscount(discountId) {
+      await client.discounts.delete(discountId);
+    },
     async createCheckout(input) {
       const checkout = await client.checkouts.create(buildCheckoutBody(input));
       return { checkoutId: checkout.id, url: checkout.url };

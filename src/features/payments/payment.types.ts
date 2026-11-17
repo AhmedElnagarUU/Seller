@@ -52,6 +52,8 @@ export interface PaymentProvider {
     productIds: string[] | null;
     existingDiscountId: string | null;
   }): Promise<{ discountId: string }>;
+  // Deletes the provider discount of a coupon.
+  deleteDiscount(discountId: string): Promise<void>;
   // Creates a hosted checkout. Returns its id and the URL to send the customer to.
   createCheckout(input: {
     productId: string;

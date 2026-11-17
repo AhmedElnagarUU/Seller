@@ -2,7 +2,7 @@ import { createFakeProvider } from "@/features/payments/fake/fake.provider";
 import type { PaymentEvent, PaymentProvider, ProviderName } from "@/features/payments/payment.types";
 
 export type RecordedPaymentCall = {
-  method: "upsertProduct" | "upsertDiscount" | "createCheckout" | "parseWebhook";
+  method: "upsertProduct" | "upsertDiscount" | "deleteDiscount" | "createCheckout" | "parseWebhook";
   input: unknown;
 };
 
@@ -21,6 +21,11 @@ export class FakePaymentProvider implements PaymentProvider {
   async upsertDiscount(input: Parameters<PaymentProvider["upsertDiscount"]>[0]): Promise<{ discountId: string }> {
     this.record("upsertDiscount", input);
     return this.delegate.upsertDiscount(input);
+  }
+
+  async deleteDiscount(discountId: string): Promise<void> {
+    this.record("deleteDiscount", { discountId });
+    return this.delegate.deleteDiscount(discountId);
   }
 
   async createCheckout(

@@ -12,6 +12,9 @@ export function createFakeProvider(): PaymentProvider {
     async upsertDiscount(input) {
       return { discountId: "fake_disc_" + input.couponId };
     },
+    async deleteDiscount() {
+      // Nothing to delete: the fake provider keeps no discounts.
+    },
     async createCheckout(input) {
       const checkoutId = "fake_chk_" + randomBytes(8).toString("hex");
       const url =

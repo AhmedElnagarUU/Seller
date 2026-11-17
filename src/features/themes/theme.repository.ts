@@ -5,8 +5,6 @@ import { escapeRegex } from "@/shared/lib/regex";
 import { MAX_THEME_IMAGES, type ThemeSort, type ThemeStatus } from "@/features/themes/theme.constants";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 
-const MONGO_DUPLICATE_KEY_CODE = 11000;
-
 // The fields an admin can write. Status, images, versions, stats and provider are never part of it.
 export type ThemeFields = Pick<
   ThemeRecord,
@@ -37,11 +35,6 @@ const SORTS: Record<ThemeListSort, Record<string, SortOrder>> = {
   "price-desc": { priceCents: -1, publishedAt: -1, _id: -1 },
   "recently-created": { createdAt: -1, _id: -1 },
 };
-
-// True when MongoDB refused a write because of a unique index.
-export function isDuplicateKeyError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error && error.code === MONGO_DUPLICATE_KEY_CODE;
-}
 
 // Case-insensitive "contains" match. The text is escaped so it is searched as plain text.
 function containsText(text: string): RegExp {
@@ -75,6 +68,15 @@ export async function findThemesByIds(ids: string[]): Promise<ThemeRecord[]> {
   if (objectIds.length === 0) return [];
   await connectDB();
   return ThemeModel.find({ _id: { $in: objectIds } }).lean<ThemeRecord[]>();
+}
+
+// Finds the themes that have a payment provider product id, any status, sorted by name.
+export async function findThemesWithProduct(): Promise<ThemeRecord[]> {
+  await connectDB();
+  return ThemeModel.find({ "provider.productId": { $ne: null } })
+    .sort({ name: 1, _id: 1 })
+    .collation({ locale: "en" })
+    .lean<ThemeRecord[]>();
 }
 
 // Finds a theme by slug, any status, or null.

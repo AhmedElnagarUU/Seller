@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
+import { CouponModel, type CouponRecord } from "@/features/coupons/coupon.model";
 import { OwnershipModel, type OwnershipRecord } from "@/features/ownerships/ownership.model";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
@@ -44,6 +45,28 @@ export async function createCategory(overrides: Partial<Omit<CategoryRecord, "_i
     ...overrides,
   });
   return category.toObject();
+}
+
+// An active percent coupon for all themes, never used, not synced. Override any field.
+export async function createCoupon(overrides: Partial<Omit<CouponRecord, "_id">> = {}): Promise<CouponRecord> {
+  const number = nextNumber();
+  const coupon = new CouponModel();
+  coupon.set({
+    code: `COUPON-${number}`,
+    type: "percent",
+    percentOff: 20,
+    amountOffCents: null,
+    appliesTo: "all",
+    themeIds: [],
+    expiresAt: null,
+    maxRedemptions: null,
+    redemptionsCount: 0,
+    active: true,
+    provider: { discountId: null, syncedAt: null },
+    ...overrides,
+  });
+  await coupon.save();
+  return coupon.toObject();
 }
 
 type ThemeImageInput = { key: string; alt: string; width: number; height: number };

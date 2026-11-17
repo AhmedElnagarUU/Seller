@@ -1,4 +1,5 @@
 import type { ClientSession } from "mongoose";
+import { isDuplicateKeyError } from "@/shared/db/duplicate-key";
 import { AppError } from "@/shared/errors";
 import {
   DEFAULT_THEME_SORT,
@@ -69,7 +70,7 @@ async function assertCategoryExists(categoryId: string): Promise<void> {
 
 // Turns a unique-index error (the slug) into the message for the admin. Other errors pass through.
 function throwSlugConflict(error: unknown): never {
-  if (themeRepository.isDuplicateKeyError(error)) throw new AppError("CONFLICT", "This slug is already used.");
+  if (isDuplicateKeyError(error)) throw new AppError("CONFLICT", "This slug is already used.");
   throw error;
 }
 
@@ -146,6 +147,24 @@ export async function getThemeForAdmin(id: string): Promise<ThemeAdminDTO | null
 export async function listThemeSummariesByIds(themeIds: string[]): Promise<ThemeSummaryDTO[]> {
   const themes = await themeRepository.findThemesByIds(themeIds);
   return themes.map(toThemeSummaryDTO);
+}
+
+// Themes that exist among `themeIds`, with their name and payment provider product id (null when not synced).
+export async function getThemesProviderInfo(
+  themeIds: string[],
+): Promise<{ id: string; name: string; productId: string | null }[]> {
+  const themes = await themeRepository.findThemesByIds(themeIds);
+  return themes.map((theme) => ({
+    id: theme._id.toString(),
+    name: theme.name,
+    productId: theme.provider.productId ?? null,
+  }));
+}
+
+// Themes that can be used in a coupon: any status, with a payment provider product id. Sorted by name.
+export async function listThemesForCouponChoice(): Promise<{ id: string; name: string }[]> {
+  const themes = await themeRepository.findThemesWithProduct();
+  return themes.map((theme) => ({ id: theme._id.toString(), name: theme.name }));
 }
 
 // Adds 1 to the download counter of a theme (docs/07-delivery-updates.md 7.1).
