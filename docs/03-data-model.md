@@ -283,7 +283,7 @@ Admin grants do **not** create orders.
 | `taxAmount`           | number                      | yes      | Integer ≥ 0. Default `0` (always `0` for wallet).                                           |
 | `totalAmount`         | number                      | yes      | Integer ≥ 0. What the customer paid.                                                        |
 | `refundedAmount`      | number                      | yes      | Integer ≥ 0. Default `0`.                                                                   |
-| `couponId`            | ObjectId → `coupons`        | nullable |                                                                                             |
+| `couponId`            | ObjectId → `coupons`        | nullable | Can point to a deleted coupon (D-018).                                                      |
 | `couponCode`          | string                      | nullable | Copy of the code used.                                                                      |
 | `walletPaymentId`     | ObjectId → `walletPayments` | nullable | Required when `method` is `"wallet"`.                                                       |
 | `provider.name`       | enum                        | yes      | `"polar" \| "fake" \| "manual_wallet"`.                                                     |
@@ -350,12 +350,12 @@ Admin grants do **not** create orders.
 
 | Field                 | Type                  | Required | Rules                                                                                         |
 | --------------------- | --------------------- | -------- | --------------------------------------------------------------------------------------------- |
-| `code`                | string                | yes      | `couponCode` format, uppercased first. Unique. Fixed after creation (D-018).                  |
-| `type`                | enum                  | yes      | `"percent" \| "fixed"`. Fixed after creation.                                                 |
+| `code`                | string                | yes      | `couponCode` format, uppercased first. Unique. Editable (D-018).                              |
+| `type`                | enum                  | yes      | `"percent" \| "fixed"`. Editable.                                                              |
 | `percentOff`          | number                | nullable | Integer 1–100. Required for `"percent"`, else `null`.                                         |
 | `amountOffCents`      | number                | nullable | USD cents, integer 100–100 000. Required for `"fixed"`, else `null`.                          |
-| `appliesTo`           | enum                  | yes      | `"all" \| "selected"`. Fixed after creation.                                                  |
-| `themeIds`            | ObjectId[] → `themes` | yes      | 1–100 items when `"selected"`; `[]` when `"all"`. Fixed after creation.                       |
+| `appliesTo`           | enum                  | yes      | `"all" \| "selected"`. Editable.                                                               |
+| `themeIds`            | ObjectId[] → `themes` | yes      | 1–100 items when `"selected"`; `[]` when `"all"`. Editable.                                    |
 | `expiresAt`           | Date                  | nullable | Editable. `null` = never.                                                                     |
 | `maxRedemptions`      | number                | nullable | Integer ≥ 1. Editable. `null` = unlimited.                                                    |
 | `redemptionsCount`    | number                | yes      | Integer ≥ 0, default `0`. +1 each time an order (card or wallet) is created with this coupon. |
@@ -371,7 +371,9 @@ Admin grants do **not** create orders.
 **Rules**
 
 - Our server checks validity (rules in `06-payments.md` section 4) for both methods.
-- Coupons are never deleted. Use `active: false`.
+- Every field except `redemptionsCount` and `provider` can be edited by the admin (D-018).
+- A coupon can be deleted, also when orders or wallet payments used it. Their `couponCode` copy stays; their `couponId`
+  then points to a coupon that no longer exists.
 
 ---
 
@@ -390,7 +392,7 @@ A customer's request to buy a theme by Egyptian wallet transfer (D-100).
 | `isOpen`             | boolean              | yes      | `true` while status is `awaiting_payment` or `submitted`; `false` otherwise. Kept in sync by the service. |
 | `usdPriceCents`      | number               | yes      | Theme price at creation.                                                                                  |
 | `usdDiscountCents`   | number               | yes      | Integer ≥ 0. Default `0`.                                                                                 |
-| `couponId`           | ObjectId → `coupons` | nullable |                                                                                                           |
+| `couponId`           | ObjectId → `coupons` | nullable | Can point to a deleted coupon (D-018).                                                                    |
 | `couponCode`         | string               | nullable |                                                                                                           |
 | `exchangeRate`       | number               | yes      | USD → EGP rate used, 1–1000, max 2 decimals. Copied from settings at creation.                            |
 | `amountEgp`          | number               | yes      | Whole pounds, integer ≥ 1. `ceil((usdPriceCents − usdDiscountCents) / 100 × exchangeRate)` (D-101).       |

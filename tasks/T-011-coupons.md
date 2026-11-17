@@ -3,16 +3,18 @@
 - Depends on: T-001 – T-010
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2, 5, 7; `docs/03-data-model.md` sections 1, 9, 15 (`coupon_created`);
   `docs/06-payments.md` sections 3.2, 4, 11 ("Coupon quote"); `docs/05-pages.md` section 5 (coupons rows);
-  `docs/10-testing.md`; `docs/01-decisions.md` D-009, D-018, D-103. Pattern to copy: `src/features/categories/*` and `src/features/themes/*` (T-004).
+  `docs/10-testing.md`; `docs/01-decisions.md` D-009, D-018 (changed on 2026-11-17: coupons are fully editable and can be deleted), D-103. Pattern to copy: `src/features/categories/*` and `src/features/themes/*` (T-004).
 
 ## Goal
 
-1. The `coupons` collection and the admin screens to create and edit coupons.
+1. The `coupons` collection and the admin screens to create, edit and delete coupons. Every field can be edited (D-018).
 2. `couponService.quote(...)`: the one price check used by card checkout (T-012) and wallet checkout (T-013).
-3. Sending a new coupon to Polar as a discount (`upsertDiscount`), and retrying that later.
+3. Sending a coupon to Polar as a discount (`upsertDiscount`), replacing that discount when the coupon's discount
+   changes, deleting it when the coupon is deleted (`deleteDiscount`, added to the provider here), and retrying a failed
+   create later (06 §3.2).
 
 **Not in this task**: using a coupon in a checkout, orders, and counting redemptions in an order (T-012 / T-013 call
-`recordRedemption`, which this task creates). A coupon is never deleted (03 §9): there is no delete.
+`recordRedemption`, which this task creates).
 
 ## Contract: functions of earlier tasks that this task calls
 
@@ -41,9 +43,13 @@ src/features/coupons/
   coupon.model.ts / coupon.repository.ts / coupon.service.ts / coupon.mapper.ts / coupon.schemas.ts
   coupon.types.ts / coupon.constants.ts / coupon.actions.ts
   coupon.service.test.ts / coupon.schemas.test.ts / coupon.mapper.test.ts
-  components/admin/CouponForm.tsx, components/admin/CouponTable.tsx
-src/features/payments/payment-sync.service.ts  (change) add syncCouponDiscount
-src/features/payments/payment-sync.service.test.ts (change) add 2 tests
+  components/admin/CouponForm.tsx, components/admin/CouponTable.tsx, components/admin/DeleteCouponButton.tsx
+src/features/payments/payment.types.ts         (change) add deleteDiscount to PaymentProvider (06 §2)
+src/features/payments/polar/polar.provider.ts  (change) deleteDiscount → `client.discounts.delete({ id })` (check the SDK signature in node_modules/@polar-sh/sdk/dist/2026-10)
+src/features/payments/fake/fake.provider.ts    (change) deleteDiscount does nothing (06 §8)
+src/shared/test/fakes/fake-payment-provider.ts (change) deleteDiscount: recorded as method "deleteDiscount" with input `{ discountId }`, honours failNext
+src/features/payments/payment-sync.service.ts  (change) add syncCouponDiscount, deleteCouponDiscount
+src/features/payments/payment-sync.service.test.ts (change) add 4 tests
 src/shared/test/factories.ts                   (change) createCoupon(overrides?)
 src/app/admin/coupons/page.tsx, new/page.tsx, [id]/page.tsx
 e2e/coupons.spec.ts
@@ -91,7 +97,7 @@ Quote errors — **exact text from 06 §4**:
 | `limitReached` | `This coupon has reached its usage limit.` |
 | `wrongTheme` | `This coupon cannot be used for this theme.` |
 
-Admin form and service messages (not in the docs): `[PLANNER: confirm every text in this table]`
+Admin form and service messages (confirmed by the owner):
 
 | Key | Text | Used for |
 |---|---|---|
@@ -109,7 +115,7 @@ Admin form and service messages (not in the docs): `[PLANNER: confirm every text
 | `notFound` | `Coupon not found.` | NOT_FOUND |
 | `saved` | `Saved.` | update result message |
 
-`[PLANNER: a coupon limited to a theme that is not yet synced to Polar would get a Polar discount that cannot be used for that theme, and D-018 forbids changing the themes later. Recommended: the coupon form only lists, and the service only accepts, themes that already have provider.productId (message themesNotSynced). Alternative: accept any theme and send Polar only the synced ones. Confirm.]`
+`[DECIDED by owner: the coupon form only lists, and the service only accepts, themes that already have provider.productId (message themesNotSynced), for create and for edit.]`
 
 ## Schemas (`coupon.schemas.ts`)
 
@@ -124,12 +130,12 @@ Form values arrive as text. Follow the style of `theme.schemas.ts` (messages abo
 | `value` | text | `percentOff: number \| null` and `amountOffCents: number \| null` | type percent: whole number 1–100 → `percentOff`, `amountOffCents = null`. Type fixed: number with at most 2 decimals, 1–1000 → `amountOffCents = Math.round(value * 100)`, `percentOff = null` |
 | `appliesTo` | `"all"` or `"selected"` | same | enum |
 | `themeIds` | string[] | string[] | `"selected"`: 1–100 unique ids; `"all"`: forced to `[]` (anything sent is ignored) |
-| `expiresAt` | text | `Date \| null` | `""` → `null`; otherwise `YYYY-MM-DD` that is a real date → `new Date(value + "T23:59:59.999Z")` (valid through the end of that UTC day). `[PLANNER: the docs say "Expires at (optional date)" only. Recommended: end of that day, UTC. Confirm.]` |
+| `expiresAt` | text | `Date \| null` | `""` → `null`; otherwise `YYYY-MM-DD` that is a real date → `new Date(value + "T23:59:59.999Z")` (valid through the end of that UTC day). (Decided by owner: end of that day, UTC.) |
 | `maxRedemptions` | text | `number \| null` | `""` → `null`; otherwise whole number ≥ 1 |
 
 `CouponInput = z.output<typeof couponInputSchema>` has exactly: `code, type, percentOff, amountOffCents, appliesTo, themeIds, expiresAt, maxRedemptions`.
 
-`couponUpdateSchema` (edit, D-018: only these three): `active` boolean, `expiresAt` (same rule), `maxRedemptions` (same rule). `CouponUpdateInput`.
+`couponUpdateSchema` (edit, D-018: everything is editable): every field of `couponInputSchema` with the same rules and messages, plus `active` boolean. `CouponUpdateInput = CouponInput & { active: boolean }`.
 
 ## Repository (`coupon.repository.ts`)
 
@@ -141,8 +147,9 @@ Calls `connectDB()` first. Writes take an optional `session`.
 | `findCouponById(id)` | `parseObjectId` first (invalid → `null`), `.lean()` |
 | `findCouponByCode(code)` | exact match on the stored (uppercase) code |
 | `listCoupons()` | all coupons, newest first (`createdAt` desc, `_id` desc) |
-| `updateCouponEditableFields(id, { active, expiresAt, maxRedemptions })` | `$set` those three only; returns the record or `null` |
-| `setCouponProvider(id, { discountId, syncedAt })` | `$set` `provider.discountId`, `provider.syncedAt` |
+| `updateCouponFields(id, fields)` | `$set` `code, type, percentOff, amountOffCents, appliesTo, themeIds, expiresAt, maxRedemptions, active` (never `redemptionsCount` or `provider`), `runValidators: true`; returns the record or `null` |
+| `deleteCouponById(id)` | `deleteOne`; returns `true` when a row was deleted |
+| `setCouponProvider(id, { discountId, syncedAt })` | `$set` `provider.discountId`, `provider.syncedAt` (both may be `null`) |
 | `incrementRedemptions(id, session)` | `$inc` `redemptionsCount` by 1 |
 
 ## Theme service additions (for the coupon form and the sync)
@@ -169,12 +176,19 @@ export async function syncCouponDiscount(input: CouponSyncInput): Promise<Coupon
 ```
 Same shape as `syncThemeProduct`: `getPaymentProvider().upsertDiscount(input)`; `catch` → `console.error("syncCouponDiscount failed", error)` and `{ ok: false }`.
 
+```ts
+// Deletes a discount at the payment provider. A failure is logged and never thrown (06 §3.2: an unused discount does no harm).
+export async function deleteCouponDiscount(discountId: string): Promise<void>
+```
+`getPaymentProvider().deleteDiscount(discountId)`; `catch` → `console.error("deleteCouponDiscount failed", error)`.
+
 ## Coupon service (`coupon.service.ts`)
 
 | Function | Rules |
 |---|---|
 | `createCoupon(input, adminUserId): Promise<{ id: string }>` | 1. `appliesTo === "selected"`: `getThemesProviderInfo(input.themeIds)` must return every id and every `productId` not `null`, else INVALID `themesNotSynced`. 2. `insertCoupon` (`redemptionsCount 0`, `active true`, `provider` nulls); duplicate key → CONFLICT `codeUsed`. 3. `activityService.log({ action: "coupon_created", actorRole: "admin", actorUserId: adminUserId, subjectUserId: null, targetType: "coupon", targetId: id, summary: "Coupon created: <CODE>" })` (no transaction, no session). 4. Sync (`syncCouponNow`, below). 5. Return `{ id }`. The coupon stays saved when the sync fails. |
-| `updateCoupon(id, input): Promise<void>` | Unknown or invalid id → NOT_FOUND `notFound`. Writes only `active`, `expiresAt`, `maxRedemptions`. Lowering `maxRedemptions` below `redemptionsCount` is allowed (no rule in the docs). |
+| `updateCoupon(id, input: CouponUpdateInput): Promise<void>` | 1. `findCouponById`; unknown or invalid id → NOT_FOUND `notFound`. 2. `appliesTo === "selected"`: same theme check as `createCoupon` → INVALID `themesNotSynced`. 3. `updateCouponFields`; duplicate key → CONFLICT `codeUsed` (keeping its own code is fine). 4. When `code`, `type`, `percentOff`, `amountOffCents`, `appliesTo` or the set of `themeIds` changed (compare with the record read in step 1; the order of `themeIds` does not matter): `syncCouponNow(updated coupon)`; when it returns `false`, `setCouponProvider(id, { discountId: null, syncedAt: null })`; then, when the old `provider.discountId` was not `null` and differs from the saved new one, `deleteCouponDiscount(old id)`. When only `active`, `expiresAt` or `maxRedemptions` changed: no provider call. No activity log entry. Lowering `maxRedemptions` below `redemptionsCount` is allowed. |
+| `deleteCoupon(id): Promise<void>` | 1. `findCouponById`; unknown or invalid → NOT_FOUND `notFound`. 2. `deleteCouponById`. 3. When the coupon had a `provider.discountId`: `deleteCouponDiscount(it)` (after the database delete). No activity log entry. Orders and wallet payments are not touched (03 §9). |
 | `quote({ themeId, priceCents, code }): Promise<CouponQuote>` | The 6 checks of 06 §4, **in this order**, the first failure throws `AppError("INVALID", message)`: (1) `findCouponByCode(code.trim().toUpperCase())` exists → else `notValid`; (2) `active` → else `notValid`; (3) `expiresAt` is `null` or `> now()` (a coupon that expires exactly now is expired) → else `expired`; (4) `maxRedemptions` is `null` or `redemptionsCount < maxRedemptions` → else `limitReached`; (5) `appliesTo === "all"` or `themeIds` contains `themeId` → else `wrongTheme`; (6) `priceCents - discountCents >= MIN_FINAL_PRICE_CENTS` → else `wrongTheme`. Discount: percent `Math.round(priceCents * percentOff / 100)`; fixed `amountOffCents`. Returns `{ couponId, code, discountCents, finalCents }` (`CouponQuote`, in `coupon.types.ts`). Writes nothing. |
 | `ensureDiscountId(couponId): Promise<string \| null>` | For card checkout (06 §5.3 step 5). Coupon missing → `null`. `provider.discountId` already set → return it (no provider call). Otherwise `syncCouponNow`; return the new id or `null` when the sync failed. |
 | `recordRedemption(couponId, session): Promise<void>` | `incrementRedemptions`. Used inside the order transactions of T-012 / T-013. |
@@ -182,7 +196,7 @@ Same shape as `syncThemeProduct`: `getPaymentProvider().upsertDiscount(input)`; 
 | `getCouponForAdmin(id): Promise<CouponAdminDTO \| null>` | `null` for an invalid or unknown id. `themeNames` from `getThemesProviderInfo`. |
 | `listCouponsForAdmin(): Promise<CouponListItemDTO[]>` | newest first, no pagination (the docs give this page no `?page=`). |
 
-`syncCouponNow(coupon)` (private helper in the same file, used by `createCoupon` and `ensureDiscountId`): `productIds` = `null` for `"all"`; for `"selected"` the non-null `productId`s of `getThemesProviderInfo(coupon.themeIds)`; when that list is empty return `false`. Call `syncCouponDiscount({ couponId, code, type, percentOff, amountOffCents, productIds, existingDiscountId: coupon.provider.discountId ?? null })`; on `{ ok: true }` call `setCouponProvider(id, { discountId, syncedAt: now() })` and return `true`; otherwise `false`.
+`syncCouponNow(coupon)` (private helper in the same file, used by `createCoupon` and `ensureDiscountId`): `productIds` = `null` for `"all"`; for `"selected"` the non-null `productId`s of `getThemesProviderInfo(coupon.themeIds)`; when that list is empty return `false`. Call `syncCouponDiscount({ couponId, code, type, percentOff, amountOffCents, productIds, existingDiscountId: null })` (always a **new** discount, 06 §3.2); on `{ ok: true }` call `setCouponProvider(id, { discountId, syncedAt: now() })` and return `true`; otherwise `false`.
 
 ## Mapper and DTOs (`coupon.mapper.ts`, `coupon.types.ts`)
 
@@ -199,7 +213,8 @@ type CouponAdminDTO = { id: string; code: string; type: CouponType; percentOff: 
 Pattern of `category.actions.ts` / `theme.actions.ts`: `requireAdmin()` → zod → service in try/catch → revalidate → result/redirect.
 - Read the form with `readText` for `code`, `type`, `value`, `appliesTo`, `expiresAt`, `maxRedemptions`, with `formData.getAll("themeIds")` filtered to strings for `themeIds`, and `readCheckbox` for `active`. Send the typed text back as `values` on errors (`themeIds` is not echoed; `active` as `"on"` / `""`).
 - `createCouponAction` → on success `redirect("/admin/coupons")`.
-- `updateCouponAction` → hidden field `id`; success `{ ok: true, data: undefined, message: "Saved." }`.
+- `updateCouponAction` → hidden field `id`; reads every create field plus `active`; success `{ ok: true, data: undefined, message: "Saved." }`.
+- `deleteCouponAction(_previous, formData)` → hidden field `id`; on success `redirect("/admin/coupons")`; on failure the `ActionResult` error. Copy `deleteCategoryAction`.
 - Revalidate `/admin/coupons` and `/admin/coupons/[id]` (`"page"`).
 
 ## Pages and components
@@ -216,10 +231,11 @@ All pages: `export const metadata = { title: "<Page title> · Theme Store", robo
 
 `CouponForm` (`"use client"`, `useActionState`, same structure as `ThemeForm`):
 - **Create**: `TextField` `Code` (hint `Letters, numbers and dashes. Saved in capital letters.`), `SelectField` `Type` (`Percent`, `Fixed amount`), `TextField` `Value` (hint `Percent: a whole number from 1 to 100. Fixed amount: dollars, for example 5.00.`), `SelectField` `Applies to` (`All themes`, `Selected themes`), a `Text weight="bold"` `Themes` and one `CheckboxField name="themeIds" value=<theme id>` per theme (label = theme name), `TextField type="date"` `Expires at` (hint `Optional.`), `TextField type="number"` `Usage limit` (hint `Optional. Leave empty for no limit.`), `SubmitButton` `Create coupon` / `Creating…`.
-- **Edit**: the code, discount (`discountLabel`), themes (`themeNames` joined by `, `, or `All themes`) and `Used` count as read-only `Text` (D-018). Editable: `CheckboxField` `Active`, `Expires at` (default = the saved date as `YYYY-MM-DD`), `Usage limit`. `SubmitButton` `Save changes` / `Saving…`. When `isSynced` is `false`: `Text tone="muted"` `Not synced with the payment provider yet. It is tried again at the first card checkout.`
+- **Edit**: the same fields as Create, all editable, with the saved values as defaults (`Value`: `"20"` for percent, `"5.00"` for fixed; `Expires at` as `YYYY-MM-DD`; the saved themes ticked), plus `CheckboxField` `Active`. The `Used` count as read-only `Text` (`Used: 3`). `SubmitButton` `Save changes` / `Saving…`. When `isSynced` is `false`: `Text tone="muted"` `Not synced with the payment provider yet. It is tried again at the first card checkout.`
+- `DeleteCouponButton` (`"use client"`, copy `DeleteCategoryButton`): below the edit form, hidden `id`, `SubmitButton variant="danger"` `Delete coupon` / `Deleting…`, `FormError` on failure.
 - Field errors under each field, form error with `FormError`, success with `Alert tone="success"` (same as `ThemeForm`).
 
-`[PLANNER: labels, hints and the empty-list text above are not in the docs (05 §5 only lists the fields). Confirm.]`
+Labels, hints and the empty-list text above are confirmed by the owner.
 
 ## Test factory
 
@@ -251,8 +267,16 @@ createCoupon
 - [ ] createCoupon › refuses a selected theme without a Polar product id, and an unknown theme id → INVALID `"Choose themes that are synced with the payment provider."`; 0 coupons
 
 updateCoupon / helpers
-- [ ] updateCoupon › changes `active`, `expiresAt` and `maxRedemptions` and nothing else (code, type, `percentOff`, `themeIds`, `redemptionsCount` unchanged)
+- [ ] updateCoupon › changes every field: a percent all-themes coupon becomes code `NEW-CODE`, fixed 500, selected 1 synced theme, `expiresAt`, `maxRedemptions 3`, `active false`; `redemptionsCount` unchanged
+- [ ] updateCoupon › replaces the provider discount when the discount changes: coupon saved with `provider.discountId "old_disc_1"`; after a new value, `calls` has one `upsertDiscount` with `existingDiscountId: null` and one `deleteDiscount` with `{ discountId: "old_disc_1" }`; DB `provider.discountId` is `fake_disc_<id>`
+- [ ] updateCoupon › makes no provider call when only `active`, `expiresAt` or `maxRedemptions` change
+- [ ] updateCoupon › saves the changes and clears the discount id when the provider fails (`failNext`): new value saved, `provider.discountId` null, `syncedAt` null
+- [ ] updateCoupon › refuses a code used by another coupon → CONFLICT `"This coupon code is already used."`; keeping its own code is accepted
+- [ ] updateCoupon › refuses a selected theme without a Polar product id → INVALID `"Choose themes that are synced with the payment provider."`; the coupon is unchanged
 - [ ] updateCoupon › unknown id → NOT_FOUND `"Coupon not found."`
+- [ ] deleteCoupon › removes the coupon and deletes its provider discount: 0 coupons; `calls` has `deleteDiscount` with `{ discountId: "old_disc_1" }`
+- [ ] deleteCoupon › still deletes when the provider fails (`failNext`): 0 coupons; `console.error` spy called once
+- [ ] deleteCoupon › unknown id → NOT_FOUND `"Coupon not found."`
 - [ ] ensureDiscountId › returns the saved id without calling the provider
 - [ ] ensureDiscountId › syncs a coupon that has no id, saves it and returns it; returns `null` and saves nothing when the provider fails
 - [ ] recordRedemption › adds 1 to `redemptionsCount` (call it inside `withTransaction`)
@@ -264,7 +288,7 @@ updateCoupon / helpers
 - [ ] couponInputSchema › fixed: `"5.00"` → `amountOffCents 500`, `percentOff null`; refuses `"0.5"`, `"1000.01"`, `"12.345"`
 - [ ] couponInputSchema › `"selected"` needs 1 theme; `"all"` forces `themeIds` to `[]`
 - [ ] couponInputSchema › empty `expiresAt` and `maxRedemptions` become `null`; `"2026-12-31"` becomes `2026-12-31T23:59:59.999Z`; `"2026-02-31"` is refused
-- [ ] couponUpdateSchema › parses the three editable fields only
+- [ ] couponUpdateSchema › same rules as the create schema plus `active` (`"on"`-style boolean from the action is passed as `true`/`false`)
 
 `coupon.mapper.test.ts`
 - [ ] toCouponListItemDTO › `"20%"` for percent, `"$5.00"` for fixed, `"All themes"`, `"1 theme"`, `"3 themes"`
@@ -272,18 +296,21 @@ updateCoupon / helpers
 `payment-sync.service.test.ts` (added)
 - [ ] syncCouponDiscount › passes every field to the provider and returns `{ ok: true, discountId }`
 - [ ] syncCouponDiscount › returns `{ ok: false }` and does not throw when the provider fails
+- [ ] deleteCouponDiscount › calls the provider with the discount id
+- [ ] deleteCouponDiscount › does not throw when the provider fails (`console.error` once)
 
 ## E2E (`e2e/coupons.spec.ts`; helpers from `e2e/helpers.ts`, T-005: `ADMIN_EMAIL`, `readMongoUri`, `registerAs`, `removeAdminAccount`)
 
 - [ ] the admin creates a 20 % coupon for all themes (code `E2E-<RUN_ID>`) → the list shows the code, `20%`, `All themes`, `0 / Unlimited` and `Active`
 - [ ] the admin tries to create the same code again → the page shows `This coupon code is already used.`
-- [ ] the admin opens `Edit`, unticks `Active`, saves → `Saved.` is shown and the list shows `Inactive`
+- [ ] the admin opens `Edit`, changes the value to `30` and unticks `Active`, saves → `Saved.` is shown and the list shows `30%` and `Inactive`
+- [ ] the admin opens `Edit` and clicks `Delete coupon` → back on `/admin/coupons`, the code is no longer listed
 
-Break check (≥ 3): swap checks 3 and 2 in `quote`; replace `Math.round` by `Math.floor`; remove the `>= 100` final-price check; allow `updateCoupon` to write `code`.
+Break check (≥ 3): swap checks 3 and 2 in `quote`; replace `Math.round` by `Math.floor`; remove the `>= 100` final-price check; skip the provider call in `updateCoupon` when the value changes; remove `deleteCouponDiscount` from `deleteCoupon`.
 
 ## Do NOT
 
-- Do not add a delete action (coupons are never deleted) and do not allow editing code, type, value, themes (D-018).
+- Do not let the admin write `redemptionsCount` or `provider`. Do not change orders or wallet payments when a coupon is edited or deleted.
 - Do not call the provider inside a transaction. Do not send an expiry or a redemption limit to Polar (06 §3.2).
 - Do not count a redemption in `quote` (the order does that, T-012 / T-013).
 - Do not add fields or indexes that are not in 03 §9.

@@ -35,7 +35,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-015 | A theme version can never be deleted and its zip can never be replaced. A wrong upload is fixed by uploading a new, higher version. A new version number must be higher than the current latest one. | LOCKED |
 | D-016 | When a theme is unpublished it disappears from the store, but people who own it can still download it and still get update emails.                                                                   | LOCKED |
 | D-017 | A theme's slug (its URL part) can be changed only while the theme is a draft. After first publish it is fixed.                                                                                       | LOCKED |
-| D-018 | After a coupon is created, only its active flag, expiry date and usage limit can change. Code, discount and themes are fixed; make a new coupon instead.                                             | LOCKED |
+| D-018 | Changed by the owner on 2026-11-17. Every field of a coupon can be changed after creation (code, type, value, themes, expiry date, usage limit, active), and a coupon can be deleted, also when orders used it. Orders keep their own amounts and a copy of the code. | LOCKED |
 | D-019 | Changelog entries are structured: each line has a type (`new`, `improved`, `fixed`, `removed`) and a short text.                                                                                     | LOCKED |
 
 ## Egyptian wallet payments

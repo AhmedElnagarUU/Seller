@@ -78,6 +78,8 @@ export interface PaymentProvider {
   upsertDiscount(input: { couponId: string; code: string; type: "percent" | "fixed";
                           percentOff: number | null; amountOffCents: number | null;
                           productIds: string[] | null; existingDiscountId: string | null }): Promise<{ discountId: string }>;
+  // Deletes the provider discount of a coupon.
+  deleteDiscount(discountId: string): Promise<void>;
   // Creates a hosted checkout. Returns its id and the URL to send the customer to.
   createCheckout(input: { productId: string; discountId: string | null; userId: string; themeId: string;
                           couponId: string | null; customerEmail: string; customerName: string;
@@ -120,7 +122,9 @@ A theme cannot be published while `provider.productId` is `null` (`03-data-model
 | When | What |
 |---|---|
 | Coupon created | `upsertDiscount`; save `provider.discountId`, `provider.syncedAt`. |
-| Sync fails | Coupon stays saved. The first card checkout that uses it tries the sync again (section 5.3 step 5). |
+| Coupon code, type, value, `appliesTo` or themes changed | Create a **new** discount (`upsertDiscount` with `existingDiscountId: null`) and save its id; then `deleteDiscount` of the old id. Only `active`, expiry or limit changed: no provider call (Polar has none of them). |
+| Coupon deleted | Delete the coupon in our database, then `deleteDiscount` of its id. |
+| Sync fails | Coupon stays saved. A failed create saves `provider.discountId: null`, so the first card checkout that uses it tries again (section 5.3 step 5). A failed `deleteDiscount` is only logged: an unused discount at Polar does no harm, because customers cannot type codes on Polar's page and only our server attaches a discount id. |
 
 Polar discount content: percent → percentage of `percentOff`; fixed → fixed `amountOffCents` USD; duration **once**;
 for `appliesTo: "selected"`, restricted to those themes' product ids. **No** expiry and **no** redemption limit at
@@ -350,6 +354,7 @@ Only the owner of the request can see it (otherwise `notFound()`). Shows by stat
 |---|---|
 | `upsertProduct` | Returns `fake_prod_<themeId>`. |
 | `upsertDiscount` | Returns `fake_disc_<couponId>`. |
+| `deleteDiscount` | Does nothing. |
 | `createCheckout` | Saves nothing. Returns `checkoutId = "fake_chk_" + random`, `url = APP_URL + "/checkout/fake/<checkoutId>?theme=<themeId>&coupon=<couponId>"`. |
 | `parseWebhook` | Not used (throws). |
 
