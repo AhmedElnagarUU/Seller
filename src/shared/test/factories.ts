@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 import { CouponModel, type CouponRecord } from "@/features/coupons/coupon.model";
+import { OrderModel, type OrderRecord } from "@/features/orders/order.model";
 import { OwnershipModel, type OwnershipRecord } from "@/features/ownerships/ownership.model";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
@@ -164,4 +165,40 @@ export async function createOwnership(
     themeId: new Types.ObjectId(themeId),
   });
   return ownership.toObject();
+}
+
+type OrderOverrides = Partial<Omit<OrderRecord, "_id">>;
+
+// A paid card order of $29.00 for a published theme. Creates the user and the theme when `userId` / `themeId` are missing.
+// It does not create an ownership and does not change `salesCount`.
+export async function createOrder(overrides: OrderOverrides = {}): Promise<OrderRecord> {
+  const number = nextNumber();
+  const userId = overrides.userId ?? (await createUser())._id;
+  const theme = overrides.themeId
+    ? await ThemeModel.findById(overrides.themeId).lean<ThemeRecord>()
+    : await createTheme({ status: "published" });
+  const themeId = overrides.themeId ?? theme?._id;
+  const order = new OrderModel();
+  order.set({
+    userId,
+    themeId,
+    themeSnapshot: { name: theme?.name ?? `Theme ${number}`, slug: theme?.slug ?? `theme-${number}` },
+    method: "card",
+    status: "paid",
+    currency: "usd",
+    subtotalAmount: 2900,
+    discountAmount: 0,
+    taxAmount: 0,
+    totalAmount: 2900,
+    refundedAmount: 0,
+    couponId: null,
+    couponCode: null,
+    walletPaymentId: null,
+    provider: { name: "polar", orderId: `order_${number}`, checkoutId: null, customerId: null },
+    paidAt: now(),
+    refundedAt: null,
+    ...overrides,
+  });
+  await order.save();
+  return order.toObject();
 }

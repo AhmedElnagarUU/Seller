@@ -36,3 +36,15 @@ export async function findUsersByIds(ids: string[]): Promise<Pick<UserRecord, "_
     .select({ name: 1 })
     .lean<Pick<UserRecord, "_id" | "name">[]>();
 }
+
+// Finds a user by id, or null (also when the id is not a valid id).
+export async function findUserSummaryById(
+  id: string,
+): Promise<Pick<UserRecord, "_id" | "name" | "email" | "country"> | null> {
+  const objectId = parseObjectId(id);
+  if (!objectId) return null;
+  await connectDB();
+  return UserModel.findById(objectId)
+    .select({ name: 1, email: 1, country: 1 })
+    .lean<Pick<UserRecord, "_id" | "name" | "email" | "country">>();
+}

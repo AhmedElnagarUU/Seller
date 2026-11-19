@@ -2,10 +2,13 @@ import { Types } from "mongoose";
 import { describe, expect, it, vi } from "vitest";
 import { ThemeModel } from "@/features/themes/theme.model";
 import {
+  adjustSalesCount,
   createTheme,
   getHomePageData,
   getPublishedThemeBySlug,
   getThemeForAdmin,
+  getThemeForPurchase,
+  getThemeForPurchaseById,
   incrementDownloadCount,
   listPublishedThemes,
   listThemeSummariesByIds,
@@ -14,6 +17,7 @@ import {
   updateTheme,
 } from "@/features/themes/theme.service";
 import type { ThemeInput } from "@/features/themes/theme.schemas";
+import { withTransaction } from "@/shared/db/transaction";
 import { setTestNow } from "@/shared/lib/clock";
 import { fakePaymentProvider } from "@/shared/test/fakes/fake-payment-provider";
 import { createCategory, createTheme as createThemeRow } from "@/shared/test/factories";
@@ -514,5 +518,60 @@ describe("updateTheme provider sync", () => {
     expect(fakePaymentProvider.calls).toEqual([]);
     const saved = await ThemeModel.findById(id).lean();
     expect(saved?.featured).toBe(true);
+  });
+});
+
+describe("getThemeForPurchase", () => {
+  it("returns a draft theme with its provider product id", async () => {
+    const theme = await createThemeRow({
+      name: "Aurora Blog",
+      slug: "aurora-blog",
+      priceCents: 3900,
+      provider: { productId: "prod_1", syncedAt: null },
+    });
+
+    expect(await getThemeForPurchase("aurora-blog")).toEqual({
+      id: theme._id.toString(),
+      slug: "aurora-blog",
+      name: "Aurora Blog",
+      tagline: theme.tagline,
+      status: "draft",
+      priceCents: 3900,
+      providerProductId: "prod_1",
+    });
+  });
+
+  it("returns a null product id for a theme that is not synced, and null for an unknown slug", async () => {
+    await createThemeRow({ slug: "no-product" });
+
+    expect((await getThemeForPurchase("no-product"))?.providerProductId).toBeNull();
+    expect(await getThemeForPurchase("unknown-slug")).toBeNull();
+  });
+});
+
+describe("getThemeForPurchaseById", () => {
+  it("returns the theme by id and null for an invalid or unknown id", async () => {
+    const theme = await createThemeRow({ status: "unpublished", name: "Old Theme" });
+
+    const found = await getThemeForPurchaseById(theme._id.toString());
+
+    expect(found?.name).toBe("Old Theme");
+    expect(found?.status).toBe("unpublished");
+    expect(await getThemeForPurchaseById("not-an-id")).toBeNull();
+    expect(await getThemeForPurchaseById(new Types.ObjectId().toString())).toBeNull();
+  });
+});
+
+describe("adjustSalesCount", () => {
+  it("adds and subtracts 1 inside a transaction", async () => {
+    const theme = await createThemeRow();
+    const themeId = theme._id.toString();
+
+    await withTransaction((session) => adjustSalesCount(themeId, 1, session));
+    await withTransaction((session) => adjustSalesCount(themeId, 1, session));
+    expect((await ThemeModel.findById(themeId).lean())?.stats.salesCount).toBe(2);
+
+    await withTransaction((session) => adjustSalesCount(themeId, -1, session));
+    expect((await ThemeModel.findById(themeId).lean())?.stats.salesCount).toBe(1);
   });
 });

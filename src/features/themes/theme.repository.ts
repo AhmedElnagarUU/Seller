@@ -222,3 +222,9 @@ export async function markThemeUnpublished(id: string, session?: ClientSession):
   );
   return result.modifiedCount === 1;
 }
+
+// Adds `delta` to the sales counter of a theme. Part of the transaction of the session.
+export async function adjustSalesCount(themeId: string, delta: 1 | -1, session: ClientSession): Promise<void> {
+  await connectDB();
+  await ThemeModel.updateOne({ _id: toObjectId(themeId) }, { $inc: { "stats.salesCount": delta } }, { session });
+}

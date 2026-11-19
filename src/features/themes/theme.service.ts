@@ -32,6 +32,7 @@ import type {
   ThemeCardDTO,
   ThemeDetailDTO,
   ThemePageDTO,
+  ThemePurchaseDTO,
   ThemeSummaryDTO,
 } from "@/features/themes/theme.types";
 
@@ -165,6 +166,35 @@ export async function getThemesProviderInfo(
 export async function listThemesForCouponChoice(): Promise<{ id: string; name: string }[]> {
   const themes = await themeRepository.findThemesWithProduct();
   return themes.map((theme) => ({ id: theme._id.toString(), name: theme.name }));
+}
+
+function toThemePurchaseDTO(theme: ThemeRecord): ThemePurchaseDTO {
+  return {
+    id: theme._id.toString(),
+    slug: theme.slug,
+    name: theme.name,
+    tagline: theme.tagline,
+    status: theme.status,
+    priceCents: theme.priceCents,
+    providerProductId: theme.provider.productId ?? null,
+  };
+}
+
+// A theme for checkout and orders, any status, or null for an unknown slug.
+export async function getThemeForPurchase(slug: string): Promise<ThemePurchaseDTO | null> {
+  const theme = await themeRepository.findThemeBySlug(slug);
+  return theme ? toThemePurchaseDTO(theme) : null;
+}
+
+// A theme for checkout and orders, any status, or null for an unknown or invalid id.
+export async function getThemeForPurchaseById(id: string): Promise<ThemePurchaseDTO | null> {
+  const theme = await themeRepository.findThemeById(id);
+  return theme ? toThemePurchaseDTO(theme) : null;
+}
+
+// Adds 1 (a sale) or -1 (a refund) to the sales counter. Part of the transaction of the session.
+export async function adjustSalesCount(themeId: string, delta: 1 | -1, session: ClientSession): Promise<void> {
+  await themeRepository.adjustSalesCount(themeId, delta, session);
 }
 
 // Adds 1 to the download counter of a theme (docs/07-delivery-updates.md 7.1).

@@ -1,7 +1,11 @@
+import { createHash, randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import { crc32, deflateSync } from "node:zlib";
 import mongoose from "mongoose";
 import { expect, type Page } from "@playwright/test";
+import { CategoryModel } from "@/features/categories/category.model";
+import { ThemeModel } from "@/features/themes/theme.model";
+import { VersionModel } from "@/features/versions/version.model";
 
 // Shared by every e2e file. All files use the one admin account, so they never run at the same time
 // (`workers: 1` in playwright.config.ts).
@@ -140,4 +144,62 @@ export async function putStoredFile(input: {
     body: new Uint8Array(input.body),
   });
   if (!response.ok) throw new Error(`Could not upload the test file (${response.status}).`);
+}
+
+// New users are not verified, and the checkout needs a verified user. Better Auth's cookie cache is off, so the
+// change works at once. Needs an open mongoose connection.
+export async function markEmailVerified(email: string): Promise<void> {
+  await mongoose.connection.db?.collection("user").updateOne({ email }, { $set: { emailVerified: true } });
+}
+
+// A category and a published theme with one real version (1.0.0) and its zip in the private bucket.
+// Needs an open mongoose connection. The caller removes the rows again.
+export async function seedPublishedThemeWithZip(input: { runId: string; priceCents: number }): Promise<{
+  themeId: string;
+  slug: string;
+  name: string;
+  zipBody: Buffer;
+}> {
+  const slug = `e2e-${input.runId}`;
+  const name = `E2E Theme ${input.runId}`;
+  const category = await CategoryModel.create({
+    name: `E2E Category ${input.runId}`,
+    slug: `e2e-category-${input.runId}`,
+  });
+  const theme = await ThemeModel.create({
+    name,
+    slug,
+    status: "published",
+    publishedAt: new Date(),
+    tagline: "A calm theme for writers and bloggers",
+    description: "A longer description of this theme. It has more than fifty characters in it.",
+    categoryId: category._id,
+    priceCents: input.priceCents,
+    requirements: { wordpressMin: "6.4", phpMin: "8.1", testedUpTo: "6.8" },
+    provider: { productId: "fake_prod_" + input.runId, syncedAt: new Date() },
+  });
+  const themeId = theme._id.toString();
+  const zipBody = createZipFile("a/style.css", "1.0.0 " + input.runId);
+  const key = `theme-zips/${themeId}/${randomBytes(8).toString("hex")}.zip`;
+  await putStoredFile({ bucket: "private", key, contentType: "application/zip", body: zipBody });
+  const releasedAt = new Date();
+  const version = await VersionModel.create({
+    themeId,
+    version: "1.0.0",
+    changes: [{ type: "new", text: "First release" }],
+    file: {
+      key,
+      sizeBytes: zipBody.length,
+      sha256: createHash("sha256").update(zipBody).digest("hex"),
+      originalName: "theme.zip",
+    },
+    releasedAt,
+    notifyRequested: false,
+    notificationJobId: null,
+  });
+  await ThemeModel.updateOne(
+    { _id: themeId },
+    { $set: { latestVersion: { versionId: version._id, version: "1.0.0", releasedAt } } },
+  );
+  return { themeId, slug, name, zipBody };
 }

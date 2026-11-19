@@ -169,3 +169,21 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-018: `fake.provider.ts` (simulateFakeRefund) makes an import cycle with the payment provider
+- Task: T-012
+- Asked by: Claude (implementing agent)
+- Question: The task puts `simulateFakeRefund` in `fake/fake.provider.ts`, which must call `processPaymentEvent` and `orderService.getRefundBase`. That creates the import cycle `payment.provider.ts` → `fake.provider.ts` → `payment-event.service.ts` → `order.service.ts` → `theme.service.ts` → `theme-sync.service.ts` → `payment-sync.service.ts` → `payment.provider.ts`. It works (nothing is read while the modules load; only function calls at run time, the build and all tests pass), but a cycle can break if someone later adds a value that is read at load time.
+- Options I see: A) keep it as it is. B) move `simulateFakeRefund` to its own file (for example `fake/fake-refund.ts`) so `fake.provider.ts` stays free of service imports.
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-019: "never throws" and "throw new Error('webhook event row missing')" in `processPaymentEvent`
+- Task: T-012
+- Asked by: Claude (implementing agent)
+- Question: The task says `processPaymentEvent` never throws, and also says to `throw new Error("webhook event row missing")` when the row is gone after a duplicate-key error. I throw that error inside the claim step and catch it at the top of `processPaymentEvent`: it is logged (event id, type and message only) and the outcome is `"temporary_failure"` (HTTP 500, so the provider retries).
+- Options I see: A) keep it. B) let the error escape (the route then answers 500 through Next.js).
+- Status: OPEN
+- Answer:
+- Doc updated:

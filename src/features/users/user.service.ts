@@ -2,6 +2,7 @@ import { env } from "@/shared/config/env";
 import { AppError } from "@/shared/errors";
 import { isCountryCode } from "@/shared/lib/countries";
 import * as userRepository from "@/features/users/user.repository";
+import type { UserSummary } from "@/features/users/user.types";
 
 // Saves the user's country. Throws INVALID for an unknown code.
 export async function setUserCountry(userId: string, country: string): Promise<void> {
@@ -29,4 +30,11 @@ export async function getUserIdByEmail(email: string): Promise<string | null> {
 export async function getUserNames(userIds: string[]): Promise<Map<string, string>> {
   const users = await userRepository.findUsersByIds(userIds);
   return new Map(users.map((user) => [user._id.toString(), user.name]));
+}
+
+// The id, name, email and country of a user, or null for an unknown or invalid id.
+export async function getUserSummary(userId: string): Promise<UserSummary | null> {
+  const user = await userRepository.findUserSummaryById(userId);
+  if (!user) return null;
+  return { id: user._id.toString(), name: user.name, email: user.email, country: user.country ?? null };
 }

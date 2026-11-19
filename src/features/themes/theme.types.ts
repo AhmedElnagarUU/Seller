@@ -20,6 +20,17 @@ export type ThemeSummaryDTO = {
   coverImage: ThemeImageDTO | null;
 };
 
+// What checkout and orders need to know about a theme, in any status.
+export type ThemePurchaseDTO = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string;
+  status: ThemeStatus;
+  priceCents: number;
+  providerProductId: string | null;
+};
+
 export type ThemeCardDTO = {
   id: string;
   slug: string;

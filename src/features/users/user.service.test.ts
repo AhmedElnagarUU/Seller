@@ -1,6 +1,13 @@
+import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
 import { UserModel } from "@/features/users/user.model";
-import { getUserIdByEmail, getUserNames, isAdminEmail, setUserCountry } from "@/features/users/user.service";
+import {
+  getUserIdByEmail,
+  getUserNames,
+  getUserSummary,
+  isAdminEmail,
+  setUserCountry,
+} from "@/features/users/user.service";
 import { createUser } from "@/shared/test/factories";
 
 async function createTestUser(country: string | null) {
@@ -60,5 +67,29 @@ describe("getUserNames", () => {
     expect(names.get(bob._id.toString())).toBe("Bob Ray");
     expect(names.has(unknownId)).toBe(false);
     expect(names.has("not-an-id")).toBe(false);
+  });
+});
+
+describe("getUserSummary", () => {
+  it("returns id, name, email and country", async () => {
+    const user = await createUser({ name: "Ann Lee", email: "ann@example.com", country: "EG" });
+
+    expect(await getUserSummary(user._id.toString())).toEqual({
+      id: user._id.toString(),
+      name: "Ann Lee",
+      email: "ann@example.com",
+      country: "EG",
+    });
+  });
+
+  it("returns a null country for a user without one", async () => {
+    const user = await createUser({ country: null });
+
+    expect((await getUserSummary(user._id.toString()))?.country).toBeNull();
+  });
+
+  it("returns null for an invalid id and for an unknown id", async () => {
+    expect(await getUserSummary("not-an-id")).toBeNull();
+    expect(await getUserSummary(new Types.ObjectId().toString())).toBeNull();
   });
 });
