@@ -197,3 +197,12 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Answer (planner, 2026-11-19): accepted. Adding `wallet: null` to that expected object is the intended change: the field is new in T-013 and the assertion is stricter, not weaker.
 - Doc updated:
 
+
+### Q-021: `e2e/activity.spec.ts` fails when e2e runs twice within a few minutes
+- Task: T-015 (found while running e2e)
+- Asked by: Claude (planner)
+- Question: The test seeds three activity rows dated 1–3 minutes ago and expects to find them on the first page of `/admin/activity` (20 rows). Every e2e run registers several users, and each registration adds a "Customer registered" row with the current time, so a second run within ~3 minutes pushes the seeded rows to page 2 and the test fails. CI runs e2e once on a fresh database, so CI is not affected; it only bites when a developer re-runs e2e quickly.
+- Options I see: A) date the seeded rows in the future of the run (e.g. now + 1 hour) so they stay on top. B) open `/admin/activity?customer=<the seeded customer email>` in the "newest first" test as well. C) leave it.
+- Status: OPEN
+- Answer:
+- Doc updated:
