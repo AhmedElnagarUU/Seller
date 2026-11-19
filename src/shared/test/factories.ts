@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 import { CouponModel, type CouponRecord } from "@/features/coupons/coupon.model";
+import { FeedbackModel, type FeedbackRecord } from "@/features/feedback/feedback.model";
 import { FavoriteModel, type FavoriteRecord } from "@/features/favorites/favorite.model";
 import type { FavoriteTargetType } from "@/features/favorites/favorite.constants";
 import { NotificationJobModel, type NotificationJobRecord } from "@/features/notifications/notification-job.model";
@@ -269,6 +270,24 @@ export async function createFavorite(
     targetId: new Types.ObjectId(targetId),
   });
   return favorite.toObject();
+}
+
+type FeedbackOverrides = Partial<Omit<FeedbackRecord, "_id" | "userId">>;
+
+// One feedback message of a customer: status "new", no reply. Override any field (also `createdAt`).
+export async function createFeedback(userId: string, overrides: FeedbackOverrides = {}): Promise<FeedbackRecord> {
+  const number = nextNumber();
+  const feedback = await FeedbackModel.create({
+    userId: new Types.ObjectId(userId),
+    subject: `Feedback ${number}`,
+    message: `A message of at least ten characters (${number}).`,
+    status: "new",
+    reply: null,
+    repliedAt: null,
+    repliedByUserId: null,
+    ...overrides,
+  });
+  return feedback.toObject();
 }
 
 // `count` verified customers who each own the theme (an active "purchase" ownership). Fast enough for 250 users.

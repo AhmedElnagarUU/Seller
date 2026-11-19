@@ -9,6 +9,8 @@ type TextProps = {
   size?: TextSize;
   tone?: TextTone;
   weight?: TextWeight;
+  // Keeps the line breaks of the text (customer messages and replies).
+  preserveLines?: boolean;
   children: React.ReactNode;
 };
 
@@ -30,6 +32,24 @@ const WEIGHT_CLASSES: Record<TextWeight, string> = {
   bold: "font-bold",
 };
 
-export function Text({ as: Tag = "p", size = "md", tone = "default", weight = "normal", children }: TextProps) {
-  return <Tag className={clsx(SIZE_CLASSES[size], TONE_CLASSES[tone], WEIGHT_CLASSES[weight])}>{children}</Tag>;
+export function Text({
+  as: Tag = "p",
+  size = "md",
+  tone = "default",
+  weight = "normal",
+  preserveLines = false,
+  children,
+}: TextProps) {
+  return (
+    <Tag
+      className={clsx(
+        SIZE_CLASSES[size],
+        TONE_CLASSES[tone],
+        WEIGHT_CLASSES[weight],
+        preserveLines && "whitespace-pre-wrap",
+      )}
+    >
+      {children}
+    </Tag>
+  );
 }

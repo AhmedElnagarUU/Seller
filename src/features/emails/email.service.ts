@@ -7,6 +7,7 @@ import { renderEmail } from "@/features/emails/email.render";
 import { getOrderForEmail } from "@/features/orders/order.service";
 import { OrderConfirmationEmail } from "@/features/emails/templates/OrderConfirmationEmail";
 import { ResetPasswordEmail } from "@/features/emails/templates/ResetPasswordEmail";
+import { FeedbackReplyEmail } from "@/features/emails/templates/FeedbackReplyEmail";
 import { AnnouncementEmail } from "@/features/emails/templates/AnnouncementEmail";
 import { NewThemeInCategoryEmail } from "@/features/emails/templates/NewThemeInCategoryEmail";
 import { ThemeUpdateEmail } from "@/features/emails/templates/ThemeUpdateEmail";
@@ -14,6 +15,8 @@ import { VerifyEmail } from "@/features/emails/templates/VerifyEmail";
 import { AdminWalletReviewEmail } from "@/features/emails/templates/AdminWalletReviewEmail";
 import { WalletApprovedEmail } from "@/features/emails/templates/WalletApprovedEmail";
 import { WalletRejectedEmail } from "@/features/emails/templates/WalletRejectedEmail";
+import { getFeedbackEmailData } from "@/features/feedback/feedback-email.service";
+import { FEEDBACK_MESSAGES } from "@/features/feedback/feedback.constants";
 import { getWalletPaymentEmailData } from "@/features/wallet-payments/wallet-payment-email.service";
 import { WALLET_MESSAGES } from "@/features/wallet-payments/wallet-payment.constants";
 import type { WalletPaymentEmailData } from "@/features/wallet-payments/wallet-payment.types";
@@ -100,6 +103,20 @@ export async function sendAdminWalletReviewEmail({ walletPaymentId }: WalletEmai
     html,
     text,
     templateName: "AdminWalletReviewEmail",
+  });
+}
+
+// Email #11 (docs/09-emails.md section 3.1): the owner replied to the customer's feedback. Call it after the transaction.
+export async function sendFeedbackReplyEmail({ feedbackId }: { feedbackId: string }): Promise<void> {
+  const data = await getFeedbackEmailData(feedbackId);
+  if (!data) throw new AppError("NOT_FOUND", FEEDBACK_MESSAGES.notFound);
+  const { html, text } = await renderEmail(FeedbackReplyEmail({ data }));
+  await getEmailSender().send({
+    to: data.userEmail,
+    subject: `Reply to your feedback: ${data.subject}`,
+    html,
+    text,
+    templateName: "FeedbackReplyEmail",
   });
 }
 

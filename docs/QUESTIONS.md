@@ -206,3 +206,21 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-022: `sendFeedbackReplyEmail` and its template do not exist, and T-016 does not list the files for them
+- Task: T-016
+- Asked by: Claude (implementing agent)
+- Question: T-016 says `sendFeedbackReplyEmail({ feedbackId })` already exists in `email.service.ts` (09 §3.1 #11) and its required test expects the email `templateName "FeedbackReplyEmail"`. It does not exist: there is no function, no `FeedbackReplyEmail.tsx` and no data loader, and none of these files is in the T-016 `Files` list. Without them `replyToFeedback` cannot send the email and the required test cannot pass. I built them exactly as 09 §3.1 #11 says (subject `Reply to your feedback: <subject>`, text "Hi <Name>, We replied to your feedback "<subject>": <reply>", button "View feedback" → `/account/feedback`), copying the wallet email pattern. Files added or changed outside the list: `src/features/emails/email.service.ts` (adds `sendFeedbackReplyEmail`), `src/features/emails/templates/FeedbackReplyEmail.tsx` (new), `src/features/feedback/feedback-email.service.ts` (new, `getFeedbackEmailData`, like `wallet-payment-email.service.ts`, so `email.service.ts` and `feedback.service.ts` do not import each other in a cycle). I also added `FeedbackEmailData` to `feedback.types.ts` and `toFeedbackEmailData` to `feedback.mapper.ts` (both listed files). No test was added to `email.service.test.ts`; the feedback service test checks the email.
+- Options I see: A) keep it. B) move the email to a task that lists these files and change T-016 to call it.
+- Status: OPEN
+- Answer:
+- Doc updated:
+
+### Q-023: Small differences between the T-016 text and the code that already exists
+- Task: T-016
+- Asked by: Claude (implementing agent)
+- Question: (1) T-016 asks for a new `newFeedbackCount` prop on `AdminShell`. `AdminShell` already has a generic `badges` prop (T-013), so I used it: `src/app/admin/layout.tsx` passes `{ "/admin/feedback": countNewFeedback() }` and `AdminShell.tsx` is unchanged. (2) The `users` changes of T-016 (`getUserSummaries`, its test) already exist from T-013, with `country` in the result (16-F), so nothing was changed there. (3) `setFeedbackReply` only updates a row that has no reply yet (`reply: null` in the filter) and returns `null` otherwise; the service turns that into the CONFLICT of 16-C, so two replies sent at the same moment cannot both win. (4) The reply form stays mounted when a reply exists, but shows only the success Alert (the form itself is hidden), so "Reply sent." is still visible after the page refreshes.
+- Options I see: A) keep it. B) change as the task text says.
+- Status: OPEN
+- Answer:
+- Doc updated:
