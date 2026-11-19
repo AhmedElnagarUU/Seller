@@ -14,6 +14,7 @@ import {
   incrementDownloadCount,
   listPublishedThemeCardsByIds,
   listPublishedThemes,
+  listThemeOptionsForAdmin,
   listThemeSummariesByIds,
   listThemesForAdmin,
   setLatestVersion,
@@ -629,5 +630,21 @@ describe("listPublishedThemeCardsByIds", () => {
 
     expect(cards.map((card) => card.id)).toEqual([c._id.toString(), a._id.toString()]);
     expect(await listPublishedThemeCardsByIds([])).toEqual([]);
+  });
+});
+
+describe("listThemeOptionsForAdmin", () => {
+  it("returns every theme of any status sorted by name", async () => {
+    const draft = await createThemeRow({ name: "Charlie", status: "draft" });
+    const published = await createThemeRow({ name: "alpha", status: "published" });
+    const unpublished = await createThemeRow({ name: "Bravo", status: "unpublished" });
+
+    const options = await listThemeOptionsForAdmin();
+
+    expect(options).toEqual([
+      { id: published._id.toString(), name: "alpha", status: "published" },
+      { id: unpublished._id.toString(), name: "Bravo", status: "unpublished" },
+      { id: draft._id.toString(), name: "Charlie", status: "draft" },
+    ]);
   });
 });

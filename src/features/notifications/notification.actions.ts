@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { ActionResult } from "@/shared/types/action";
+import { failureFrom } from "@/shared/lib/action-result";
 import { readText } from "@/shared/lib/form-data";
-import { requireUser } from "@/features/auth/session";
+import { requireAdmin, requireUser } from "@/features/auth/session";
+import { retryNotificationJob } from "@/features/notifications/notification-job.service";
 import { markAllNotificationsRead, openNotification } from "@/features/notifications/notification.service";
 
 const NOTIFICATIONS_PATH = "/account/notifications";
@@ -20,4 +23,20 @@ export async function markAllNotificationsReadAction(): Promise<void> {
   const user = await requireUser(NOTIFICATIONS_PATH);
   await markAllNotificationsRead(user.id);
   revalidatePath(NOTIFICATIONS_PATH);
+}
+
+// The admin puts a failed job back in the queue.
+export async function retryNotificationJobAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    await retryNotificationJob(readText(formData, "jobId"));
+  } catch (error) {
+    return failureFrom(error, "retryNotificationJobAction", {});
+  }
+  revalidatePath("/admin/notifications");
+  revalidatePath("/admin/themes/[id]/versions", "page");
+  return { ok: true, data: undefined };
 }

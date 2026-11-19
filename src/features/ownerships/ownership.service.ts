@@ -6,8 +6,8 @@ import * as activityService from "@/features/activity/activity.service";
 import { OWNERSHIP_MESSAGES } from "@/features/ownerships/ownership.constants";
 import type { OwnershipRecord } from "@/features/ownerships/ownership.model";
 import * as ownershipRepository from "@/features/ownerships/ownership.repository";
-import type { GrantFromOrderResult, OwnedThemeDTO } from "@/features/ownerships/ownership.types";
-import { getThemeForAdmin, listThemeSummariesByIds } from "@/features/themes/theme.service";
+import type { GrantFromOrderResult, OwnedThemeDTO, OwnershipAdminRowDTO } from "@/features/ownerships/ownership.types";
+import { getThemeForAdmin, listThemeOptionsForAdmin, listThemeSummariesByIds } from "@/features/themes/theme.service";
 import { getUserNames } from "@/features/users/user.service";
 import { listVersionsForTheme } from "@/features/versions/version.service";
 
@@ -143,4 +143,26 @@ export async function listActiveOwnerRowsAfter(input: {
 }): Promise<{ rowId: string; userId: string }[]> {
   const rows = await ownershipRepository.findActiveOwnerRowsAfter(input);
   return rows.map((row) => ({ rowId: row._id.toString(), userId: row.userId.toString() }));
+}
+
+// How many active ownerships each user has. Users without any are missing from the map.
+export async function countActiveOwnershipsByUser(userIds: string[]): Promise<Map<string, number>> {
+  return ownershipRepository.countActiveByUsers(userIds);
+}
+
+// The active ownerships of a customer for the admin page, sorted by theme name.
+export async function listOwnershipsForAdmin(userId: string): Promise<OwnershipAdminRowDTO[]> {
+  const [ownerships, themes] = await Promise.all([
+    ownershipRepository.findActiveOwnershipsByUserId(userId),
+    listThemeOptionsForAdmin(),
+  ]);
+  const themeNames = new Map(themes.map((theme) => [theme.id, theme.name]));
+  const rows: OwnershipAdminRowDTO[] = [];
+  for (const ownership of ownerships) {
+    const themeId = ownership.themeId.toString();
+    const themeName = themeNames.get(themeId);
+    if (themeName === undefined) continue;
+    rows.push({ themeId, themeName, source: ownership.source, grantNote: ownership.grantNote ?? null });
+  }
+  return rows.sort((first, second) => first.themeName.localeCompare(second.themeName, "en"));
 }

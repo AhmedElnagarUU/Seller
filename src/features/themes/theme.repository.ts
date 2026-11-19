@@ -236,3 +236,13 @@ export async function adjustSalesCount(themeId: string, delta: 1 | -1, session: 
   await connectDB();
   await ThemeModel.updateOne({ _id: toObjectId(themeId) }, { $inc: { "stats.salesCount": delta } }, { session });
 }
+
+// Every theme, any status, sorted by name. Only `_id`, `name` and `status`.
+export async function findAllThemeOptions(): Promise<Pick<ThemeRecord, "_id" | "name" | "status">[]> {
+  await connectDB();
+  return ThemeModel.find()
+    .select({ name: 1, status: 1 })
+    .collation({ locale: "en" })
+    .sort({ name: 1, _id: 1 })
+    .lean<Pick<ThemeRecord, "_id" | "name" | "status">[]>();
+}

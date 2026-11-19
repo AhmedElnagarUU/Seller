@@ -1,5 +1,7 @@
 import type { ClientSession } from "mongoose";
 import { toObjectId } from "@/shared/db/ids";
+import { AppError } from "@/shared/errors";
+import { ANNOUNCEMENT_MESSAGES } from "@/features/notifications/announcement.constants";
 import { toNotificationJobSummaryDTO } from "@/features/notifications/notification-job.mapper";
 import * as notificationJobRepository from "@/features/notifications/notification-job.repository";
 import type { AnnouncementFields } from "@/features/notifications/notification-job.repository";
@@ -115,4 +117,13 @@ export async function getJobSummaries(jobIds: string[]): Promise<Map<string, Not
     summaries.set(record._id.toString(), toNotificationJobSummaryDTO(record));
   }
   return summaries;
+}
+
+// Retries a failed job (docs/09-emails.md section 5.5): back to "pending" with 0 attempts, the cursor is kept.
+export async function retryNotificationJob(jobId: string): Promise<void> {
+  const job = await notificationJobRepository.findJobById(jobId);
+  if (!job) throw new AppError("NOT_FOUND", ANNOUNCEMENT_MESSAGES.jobNotFound);
+  if (job.status !== "failed") throw new AppError("CONFLICT", ANNOUNCEMENT_MESSAGES.onlyFailedCanRetry);
+  const wasReset = await notificationJobRepository.resetFailedJob(jobId);
+  if (!wasReset) throw new AppError("CONFLICT", ANNOUNCEMENT_MESSAGES.onlyFailedCanRetry);
 }

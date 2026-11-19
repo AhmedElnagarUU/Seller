@@ -168,6 +168,12 @@ export async function listThemesForCouponChoice(): Promise<{ id: string; name: s
   return themes.map((theme) => ({ id: theme._id.toString(), name: theme.name }));
 }
 
+// Every theme of any status for an admin select, sorted by name.
+export async function listThemeOptionsForAdmin(): Promise<{ id: string; name: string; status: ThemeStatus }[]> {
+  const themes = await themeRepository.findAllThemeOptions();
+  return themes.map((theme) => ({ id: theme._id.toString(), name: theme.name, status: theme.status }));
+}
+
 function toThemePurchaseDTO(theme: ThemeRecord): ThemePurchaseDTO {
   return {
     id: theme._id.toString(),

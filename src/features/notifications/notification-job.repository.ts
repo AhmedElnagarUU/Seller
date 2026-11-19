@@ -131,3 +131,38 @@ export async function recordJobFailure(jobId: Types.ObjectId, message: string): 
   if (!updated || updated.attempts < MAX_JOB_ATTEMPTS) return;
   await NotificationJobModel.updateOne({ _id: jobId }, { $set: { status: "failed", finishedAt: now() } });
 }
+
+// One page of the announcement jobs, newest first.
+export async function findAnnouncementJobsPage(page: number, pageSize: number): Promise<NotificationJobRecord[]> {
+  await connectDB();
+  return NotificationJobModel.find({ kind: "announcement" })
+    .sort({ createdAt: -1, _id: -1 })
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .lean<NotificationJobRecord[]>();
+}
+
+export async function countAnnouncementJobs(): Promise<number> {
+  await connectDB();
+  return NotificationJobModel.countDocuments({ kind: "announcement" });
+}
+
+// Finds a job by id, or null (also when the id is not a valid id).
+export async function findJobById(id: string): Promise<NotificationJobRecord | null> {
+  const objectId = parseObjectId(id);
+  if (!objectId) return null;
+  await connectDB();
+  return NotificationJobModel.findById(objectId).lean<NotificationJobRecord>();
+}
+
+// Puts a failed job back in the queue (docs/09-emails.md section 5.5): the cursor stays. Returns true when it changed.
+export async function resetFailedJob(id: string): Promise<boolean> {
+  const objectId = parseObjectId(id);
+  if (!objectId) return false;
+  await connectDB();
+  const result = await NotificationJobModel.updateOne(
+    { _id: objectId, status: "failed" },
+    { $set: { status: "pending", attempts: 0, error: null } },
+  );
+  return result.modifiedCount === 1;
+}

@@ -150,3 +150,15 @@ export async function findActiveOwnerRowsAfter(input: {
     .select({ userId: 1 })
     .lean<{ _id: Types.ObjectId; userId: Types.ObjectId }[]>();
 }
+
+// How many active ownerships each user has. Users without any are missing from the map. Invalid ids are ignored.
+export async function countActiveByUsers(userIds: string[]): Promise<Map<string, number>> {
+  const objectIds = userIds.map(parseObjectId).filter((objectId) => objectId !== null);
+  if (objectIds.length === 0) return new Map();
+  await connectDB();
+  const rows = await OwnershipModel.aggregate<{ _id: Types.ObjectId; count: number }>([
+    { $match: { status: "active", userId: { $in: objectIds } } },
+    { $group: { _id: "$userId", count: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map((row) => [row._id.toString(), row.count]));
+}

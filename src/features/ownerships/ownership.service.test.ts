@@ -1,7 +1,9 @@
 import { Types } from "mongoose";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ActivityLogModel } from "@/features/activity/activity-log.model";
+import { OrderModel } from "@/features/orders/order.model";
 import { OwnershipModel } from "@/features/ownerships/ownership.model";
+import { ThemeModel } from "@/features/themes/theme.model";
 import {
   grantByAdmin,
   grantFromOrder,
@@ -13,7 +15,14 @@ import {
 } from "@/features/ownerships/ownership.service";
 import { withTransaction } from "@/shared/db/transaction";
 import { setTestNow } from "@/shared/lib/clock";
-import { createAdmin, createOwnership, createTheme, createUser, createVersion } from "@/shared/test/factories";
+import {
+  createAdmin,
+  createOrder,
+  createOwnership,
+  createTheme,
+  createUser,
+  createVersion,
+} from "@/shared/test/factories";
 
 const FIXED_NOW = new Date("2026-11-01T10:00:00Z");
 const EARLIER = new Date("2026-10-01T10:00:00Z");
@@ -494,5 +503,26 @@ describe("listActiveOwnerRowsAfter", () => {
     expect(afterFirst.map((row) => row.userId)).toEqual([second._id.toString(), third._id.toString()]);
     expect(limited.map((row) => row.rowId)).toEqual([firstRow._id.toString(), secondRow._id.toString()]);
     expect(await listActiveOwnerRowsAfter({ themeId: "x", afterId: null, limit: 10 })).toEqual([]);
+  });
+});
+
+describe("revokeByAdmin (purchased ownership)", () => {
+  it("revokes a purchased ownership and leaves the order and salesCount alone", async () => {
+    const { userId, themeId, adminId } = await setupAdminCase();
+    await ThemeModel.updateOne({ _id: themeId }, { $set: { "stats.salesCount": 3 } });
+    const order = await createOrder({ userId: new Types.ObjectId(userId), themeId: new Types.ObjectId(themeId) });
+    await grantFromOrder({ userId, themeId, orderId: order._id.toString() });
+
+    await revokeByAdmin({ userId, themeId, note: "Abuse" }, adminId);
+
+    const row = await onlyOwnership();
+    expect(row?.status).toBe("revoked");
+    expect(row?.source).toBe("purchase");
+    expect(row?.orderId?.toString()).toBe(order._id.toString());
+    const savedOrder = await OrderModel.findById(order._id).lean();
+    expect(savedOrder?.status).toBe("paid");
+    expect(savedOrder?.refundedAmount).toBe(0);
+    const savedTheme = await ThemeModel.findById(themeId).lean();
+    expect(savedTheme?.stats.salesCount).toBe(3);
   });
 });

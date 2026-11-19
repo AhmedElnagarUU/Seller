@@ -1,3 +1,4 @@
+import type { OwnershipSource } from "@/features/ownerships/ownership.constants";
 import type { ThemeSummaryDTO } from "@/features/themes/theme.types";
 import type { VersionDTO } from "@/features/versions/version.types";
 
@@ -9,3 +10,11 @@ export type OwnedThemeDTO = {
 
 // What grantFromOrder did.
 export type GrantFromOrderResult = "created" | "reactivated" | "unchanged";
+
+// One active ownership on the admin customer page.
+export type OwnershipAdminRowDTO = {
+  themeId: string;
+  themeName: string;
+  source: OwnershipSource;
+  grantNote: string | null;
+};

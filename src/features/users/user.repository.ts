@@ -1,6 +1,8 @@
-import type { Types } from "mongoose";
+import mongoose, { type ClientSession, type Types } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
 import { parseObjectId, toObjectId } from "@/shared/db/ids";
+import { escapeRegex } from "@/shared/lib/regex";
+import type { CustomerStatusFilter } from "@/features/users/user.constants";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
 
 // Finds a user by id, or null.
@@ -107,4 +109,58 @@ export async function findEnabledUserIdsAfter(input: {
     .limit(input.limit)
     .select({ _id: 1 })
     .lean<{ _id: Types.ObjectId }[]>();
+}
+
+// What the admin customer list looks for.
+export type UserQuery = { q: string; status: CustomerStatusFilter | undefined };
+
+function buildUserFilter(query: UserQuery): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
+  if (query.q) {
+    const pattern = new RegExp(escapeRegex(query.q), "i");
+    filter.$or = [{ name: pattern }, { email: pattern }];
+  }
+  if (query.status === "active") filter.disabled = { $ne: true };
+  if (query.status === "disabled") filter.disabled = true;
+  return filter;
+}
+
+// One page of users, newest first.
+export async function findUsers(query: UserQuery, page: number, pageSize: number): Promise<UserRecord[]> {
+  await connectDB();
+  return UserModel.find(buildUserFilter(query))
+    .sort({ createdAt: -1, _id: -1 })
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .lean<UserRecord[]>();
+}
+
+export async function countUsers(query: UserQuery): Promise<number> {
+  await connectDB();
+  return UserModel.countDocuments(buildUserFilter(query));
+}
+
+// Marks the account as disabled. Only our extra fields are written.
+export async function setUserDisabled(id: string, reason: string, at: Date, session?: ClientSession): Promise<void> {
+  await connectDB();
+  await UserModel.updateOne(
+    { _id: toObjectId(id) },
+    { $set: { disabled: true, disabledReason: reason, disabledAt: at } },
+    { session },
+  );
+}
+
+export async function setUserEnabled(id: string, session?: ClientSession): Promise<void> {
+  await connectDB();
+  await UserModel.updateOne(
+    { _id: toObjectId(id) },
+    { $set: { disabled: false, disabledReason: null, disabledAt: null } },
+    { session },
+  );
+}
+
+// Deletes the login sessions of one user. `session` is Better Auth's collection: `userId` is an ObjectId there.
+export async function deleteSessionsOfUser(id: string, session?: ClientSession): Promise<void> {
+  await connectDB();
+  await mongoose.connection.collection("session").deleteMany({ userId: toObjectId(id) }, { session });
 }
