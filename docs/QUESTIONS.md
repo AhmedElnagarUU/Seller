@@ -239,6 +239,6 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The task says `changeUserPassword` calls `auth.api.changePassword({ body: { currentPassword, newPassword, revokeOtherSessions: true }, headers })` and that "Better Auth keeps the current session". In better-auth 1.7.17 that option deletes all sessions and creates a NEW session with a new cookie. In a server action the page that Next renders right after the action still reads the old cookie (`headers()`), so it showed the customer as logged out (header "Log in") and the success message was lost; the e2e test "the customer changes name, e-mail switches and password in the settings" failed. A reload showed the customer logged in.
 - Options I see: A) (used for now) call `changePassword` without the option, then `auth.api.revokeOtherSessions({ headers })`; the current session and cookie stay, all other sessions are ended, the unit test (exactly 1 session left, the second session is gone) and the e2e test pass. B) keep `revokeOtherSessions: true` and change `getCurrentUser` / the action so the render after the action sees the new cookie (needs files outside the T-019 list).
-- Status: OPEN
-- Answer: —
+- Status: ANSWERED
+- Answer (planner, 2026-11-19): accepted. `changePassword` without the option, then `auth.api.revokeOtherSessions({ headers })`, keeps the current session and ends all others, which is what the task wants.
 - Doc updated: —
