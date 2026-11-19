@@ -6,7 +6,7 @@ These override the matching `[PLANNER ...]` notes below.
 
 - 15-A: DECIDED — theme → `"This theme is not available."`, category → `"Category not found."`.
 - 15-B: DECIDED — the recommendation: `unfavorite` = `"Remove from favorites"`, `unfollow` = `"Unfollow category"`; a logged-out visitor sees `♥ Favorite` / `Follow category` as a `ButtonLink` to `/login?next=<encoded page path>`.
-- 15-C: still open; the planner settles it after T-014 is merged.
+- 15-C: DECIDED — see the 15-C paragraph below.
 
 - Depends on: T-014 (and so T-005 … T-013, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 9; `docs/03-data-model.md` sections 4 (delete rule), 11, 13 (stages);
@@ -56,11 +56,14 @@ src/app/account/favorites/page.tsx
 e2e/favorites.spec.ts
 ```
 
-**[PLANNER 15-C]** `docs/09-emails.md` 5.4 makes the T-014 processor read `favorites`. Before writing anything, look in
-`src/features/favorites/` and `src/shared/test/factories.ts`. If T-014 already created `favorite.model.ts` (and maybe
-`favorite.repository.ts`, a function that lists source rows, and a `createFavorite` factory), **keep those files and
-those function names exactly**, compare the model with 03 §11, and add only what is missing from the list above.
-If nothing exists, create everything. (Planner: replace this paragraph with the real answer when T-014 is final.)
+**[DECIDED 15-C]** T-014 already created the read side in `src/features/favorites/`. **Keep these files, names and
+signatures exactly** and add only what this task needs:
+- `favorite.constants.ts`: `FAVORITE_TARGET_TYPES`, type `FavoriteTargetType` (add the other constants below to this file).
+- `favorite.model.ts`: `FavoriteModel`, `FavoriteRecord` (collection `favorites`, timestamps, both indexes of 03 §11). Compare it with the Model section below; it should already match — do not recreate it.
+- `favorite.repository.ts`: `findFavoriteRowsAfter({ targetType, targetId, afterId, limit })` (used by the T-014 processor).
+- `favorite.service.ts`: `listFavoriteRowsAfter(...)` returning `{ rowId, userId }[]` (used by the T-014 processor).
+- `favorite.service.test.ts`: 2 existing tests — keep them; append the new ones.
+- `src/shared/test/factories.ts`: `createFavorite(userId, targetType, targetId)` exists — reuse it, do not add a second favorite factory.
 
 The account pages get their frame (`AccountShell`) from `src/app/account/layout.tsx`, written in T-009. The new page
 does **not** wrap itself in `AccountShell`. If that layout file does not exist, stop and write a question in `docs/QUESTIONS.md`.
@@ -77,9 +80,9 @@ export type FavoriteTargetType = (typeof FAVORITE_TARGET_TYPES)[number];
 export const FAVORITE_ID_PATTERN = /^[a-f0-9]{24}$/i;   // an ObjectId written as text
 export const FAVORITE_LABELS = {
   favorite: "♥ Favorite",                                  // docs/00 3.1, docs/05 §3
-  unfavorite: "[PLANNER 15-B]",
+  unfavorite: "Remove from favorites",           // owner decision 15-B
   follow: "Follow category",                               // docs/00 3.1
-  unfollow: "[PLANNER 15-B]",
+  unfollow: "Unfollow category",                 // owner decision 15-B
   removeFromList: "Remove",                                // docs/05 §4, button on each favorite theme card
   unfollowFromList: "Unfollow",                            // docs/05 §4, button on each followed category
 } as const;
@@ -124,9 +127,9 @@ Imports `getPublishedThemeCardById`, `listPublishedThemeCardsByIds` from `theme.
 
 | Function | Rules / errors |
 |---|---|
-| `favoriteTheme(userId, themeId)` | theme must be **published** (`getPublishedThemeCardById`), else `AppError("NOT_FOUND", <[PLANNER 15-A theme]>)`. Then `insertFavoriteIfMissing(userId, "theme", themeId)`. Favoriting twice does nothing and does not throw (03 §11). |
+| `favoriteTheme(userId, themeId)` | theme must be **published** (`getPublishedThemeCardById`), else `AppError("NOT_FOUND", `"This theme is not available."`)`. Then `insertFavoriteIfMissing(userId, "theme", themeId)`. Favoriting twice does nothing and does not throw (03 §11). |
 | `unfavoriteTheme(userId, themeId)` | `deleteFavorite`. No theme check (a theme that was unpublished later must still be removable). Not favorited → nothing happens, no error. |
-| `followCategory(userId, categoryId)` | category must exist (`getCategoryById`), else `AppError("NOT_FOUND", <[PLANNER 15-A category]>)`. Then `insertFavoriteIfMissing(userId, "category", categoryId)`. Twice → nothing, no error. |
+| `followCategory(userId, categoryId)` | category must exist (`getCategoryById`), else `AppError("NOT_FOUND", `"Category not found."`)`. Then `insertFavoriteIfMissing(userId, "category", categoryId)`. Twice → nothing, no error. |
 | `unfollowCategory(userId, categoryId)` | `deleteFavorite`. No error when not followed. |
 | `listFavorites(userId): Promise<FavoritesDTO>` | `themes`: `listPublishedThemeCardsByIds(<theme favorite targetIds in listFavoritesByUser order>)` (rows of non-published themes stay in the database but are not shown). `categories`: for each category favorite, `getCategoryById`; categories that no longer exist are skipped; result `{ id, name, slug }[]` in the same order as the rows (most recently followed first). Only the given user's rows. |
 | `isThemeFavorite(userId, themeId): Promise<boolean>` | `existsFavorite`. |
