@@ -22,13 +22,6 @@ import {
 
 // These actions are called from client code (not from a <form>), so they take one unknown argument.
 
-// validationFailure and failureFrom are typed for actions without data. A failure has the same shape for
-// every data type, so this only narrows the type (docs/QUESTIONS.md Q-009).
-function asUploadFailure(result: ActionResult): ActionResult<PresignedUpload> {
-  if (result.ok) throw new Error("Expected a failed action result.");
-  return result;
-}
-
 function revalidateImagePages(): void {
   revalidatePath("/admin/themes/[id]", "page");
   revalidatePath("/themes/[slug]", "page");
@@ -39,12 +32,12 @@ function revalidateImagePages(): void {
 export async function createImageUploadUrlAction(input: unknown): Promise<ActionResult<PresignedUpload>> {
   await requireAdmin();
   const parsed = createImageUploadUrlSchema.safeParse(input);
-  if (!parsed.success) return asUploadFailure(validationFailure(parsed.error, {}));
+  if (!parsed.success) return validationFailure(parsed.error, {});
   let upload: PresignedUpload;
   try {
     upload = await createImageUploadUrl(parsed.data);
   } catch (error) {
-    return asUploadFailure(failureFrom(error, "createImageUploadUrlAction", {}));
+    return failureFrom(error, "createImageUploadUrlAction", {});
   }
   revalidateImagePages();
   return { ok: true, data: upload };

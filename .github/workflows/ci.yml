@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, claude/wordpress-ecommerce-planning-dipvfa]
 
 jobs:
   checks:
@@ -23,6 +23,15 @@ jobs:
       APP_ENV: ci
       PAYMENT_PROVIDER: fake
       CRON_SECRET: dev-cron-secret-change-me-dev-cron-secret
+      # Placeholder values for tests only (same as .env.example). Never real keys.
+      BETTER_AUTH_SECRET: dev-secret-change-me-dev-secret-change-me
+      BETTER_AUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: dev-google-client-id
+      GOOGLE_CLIENT_SECRET: dev-google-client-secret
+      ADMIN_EMAILS: admin@example.com
+      EMAIL_TRANSPORT: console
+      EMAIL_FROM: Theme Store <hello@example.com>
+      SUPPORT_EMAIL: support@example.com
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

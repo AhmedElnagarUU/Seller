@@ -94,8 +94,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: `createImageUploadUrlAction` must return `ActionResult<PresignedUpload>`, but `validationFailure` and `failureFrom` in `src/shared/lib/action-result.ts` return `ActionResult` (data `undefined`), so TypeScript refuses the `return`. That file is not in the T-006 file list. I added a small local function `asUploadFailure` in `theme-image.actions.ts` that only narrows the type. T-008 (zip upload URL) will hit the same problem.
 - Options I see: A) keep the local function. B) change the two helpers to return only the failure part of `ActionResult` (it fits every `ActionResult<T>`) and remove the local function.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): fixed (option B). `validationFailure` and `failureFrom` now return `ActionFailure` (the failure half of `ActionResult`), which fits every `ActionResult<T>`. The three local `asUploadFailure` copies were removed.
 - Doc updated:
 
 ### Q-010: Theme images do not show on a local machine (Next.js blocks `localhost` image sources)
@@ -103,8 +103,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: Uploads work and the image is saved, but `next/image` (used by `ImageFrame`) refuses to load it locally. The server logs `upstream image http://localhost:9000/store-images/... hostname resolved to private IP ["127.0.0.1"] ... use images.dangerouslyAllowLocalIP = true`, and the admin and store pages show a broken image. Production is not affected (the R2 public address is not a private IP). T-006 says not to change `next.config.ts`, so I changed nothing. The e2e tests still pass because they check the database and the labels, not the picture.
 - Options I see: A) in `next.config.ts` set `images.dangerouslyAllowLocalIP: true` only when `APP_ENV` is `local` or `ci`. B) leave it: images are broken in local development and e2e only.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): fixed (option A). `next.config.ts` sets `images.dangerouslyAllowLocalIP` only when `APP_ENV` is `local` or `ci`; staging and production keep Next.js's default protection.
 - Doc updated:
 
 ### Q-011: The MinIO images of `docker-compose.yml` could not be pulled (follow-up of Q-002)
@@ -130,8 +130,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: `ChangesEditor` (props `changes`, `onChange`) must report every typed character and every chosen type to its parent, but the UI kit's `SelectField` and `TextField` only take `defaultValue` and have no `onChange`. Changing the kit is not in the T-008 file list. I wrapped each row in a plain `<div onChange>` that listens to the change events bubbling up from the two fields, and gave each row a stable `rowId` (so removing a row does not shift the typed values of the others). It works (e2e passes), but it is not the usual React way.
 - Options I see: A) keep the wrapper `<div onChange>`. B) add an optional `onChange` prop to `SelectField` and `TextField` in the UI kit and use it in `ChangesEditor`.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): keep option A (the wrapper `<div onChange>`). It works and is tested; an `onChange` prop on the kit fields can come with a later UI task.
 - Doc updated:
 
 ### Q-014: `putStoredFile` of T-009 cannot run as written (`import()` does not resolve the `@/` paths of `s3.ts`)
@@ -139,8 +139,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The helper in the task uses `await import("@/shared/storage/s3")` and `fetch(..., { body: input.body })`. Under Playwright the first fails with `Cannot find module '@/shared/config/env'` (the `import()` loads `s3.ts` natively, so the `@/` paths inside it are not mapped; static imports work). The second does not pass `pnpm typecheck` (`Buffer` is not accepted as a `BodyInit`). I changed the helper (only in `e2e/helpers.ts`): `createRequire(__filename)("@/shared/storage/s3") as typeof import("@/shared/storage/s3")` and `body: new Uint8Array(input.body)`. Behavior is the same (it still loads `.env` first, so `env.ts` sees the variables).
 - Options I see: A) keep my version and update the snippet in `tasks/T-009-ownerships-downloads.md`. B) another way to load `s3.ts` after `.env` (for example a `.env` loader in `playwright.config.ts`, then a normal static import).
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): accepted (`createRequire` and `Uint8Array`); all later e2e files use the same pattern.
 - Doc updated:
 
 ### Q-015: `downloadLogs` TTL index is in 03 §17 and D-148 but not in the T-009 index list
@@ -148,8 +148,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: T-009 lists two indexes for `downloadLogs` (`{ userId: 1, createdAt: -1 }`, `{ themeId: 1, createdAt: -1 }`), but 03 §17 and D-148 also have `{ createdAt: 1 }` with `expireAfterSeconds: 31536000` (rows deleted after 1 year), and the task says "Model exactly 03 §17". I added the TTL index (constant `DOWNLOAD_LOG_RETENTION_SECONDS` in `download.constants.ts`, same style as the notification and activity models). No required test covers it.
 - Options I see: A) keep the TTL index (matches 03 §17). B) remove it and update 03 §17 and D-148.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): accepted: the TTL index of 03 §17 / D-148 is correct.
 - Doc updated:
 
 ### Q-016: Newer stable `@polar-sh/sdk` 1.x exists than the 1.0.2 named in T-010
@@ -157,8 +157,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: `npm view @polar-sh/sdk versions` now also lists the stable versions `1.1.0` and `1.3.0` (`latest` is 1.3.0; the planner check of 2026-11-06 saw only up to 1.0.2). The task says to add a question instead of choosing, so I installed exactly `1.0.2` as written. All T-010 code type-checks and its tests pass against 1.0.2 (including real webhook signature checks with `webhooks.validateEvent`).
 - Options I see: A) keep 1.0.2. B) upgrade to 1.3.0 in a later task after reading its changelog.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): stay on 1.0.2 for launch: everything is built and tested against it. Upgrading the Polar SDK is a separate change, to be tested on staging with the Polar sandbox.
 - Doc updated:
 
 ### Q-017: The "Theme published." message needs the panel to keep the action states (PublishPanel)
@@ -166,8 +166,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The task says each of the three forms in `PublishPanel` runs its own `useActionState` and shows the success `Alert`, and the e2e test expects `Theme published.` to appear. After a successful publish the page is revalidated, `status` becomes `published`, and the Publish form is replaced by the Unpublish form, so a state kept inside the Publish form is lost with it and the message never shows. I kept the three `useActionState` calls in `PublishPanel` (same actions, same messages, same buttons and texts) and let the form that appears after a status change show the success message of the action before it (Unpublish form shows "Theme published.", Publish form shows "Theme unpublished."). The Sync form shows its own result (it disappears after a successful sync, which the e2e test expects). Known small effect: after publish, unpublish, publish again, an old result is replaced by the newest one of the same action only.
 - Options I see: A) keep it as it is. B) change the task text so the panel owns the states. C) show the success message from a `?published=1`-style search parameter like `?created=1` (needs a page change that is not in the task).
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): accepted (the panel keeps the action states).
 - Doc updated:
 
 ### Q-018: `fake.provider.ts` (simulateFakeRefund) makes an import cycle with the payment provider
@@ -175,8 +175,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The task puts `simulateFakeRefund` in `fake/fake.provider.ts`, which must call `processPaymentEvent` and `orderService.getRefundBase`. That creates the import cycle `payment.provider.ts` → `fake.provider.ts` → `payment-event.service.ts` → `order.service.ts` → `theme.service.ts` → `theme-sync.service.ts` → `payment-sync.service.ts` → `payment.provider.ts`. It works (nothing is read while the modules load; only function calls at run time, the build and all tests pass), but a cycle can break if someone later adds a value that is read at load time.
 - Options I see: A) keep it as it is. B) move `simulateFakeRefund` to its own file (for example `fake/fake-refund.ts`) so `fake.provider.ts` stays free of service imports.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): accepted for the MVP: nothing is read at load time, and build and tests pass. Move `simulateFakeRefund` to its own file if the cycle ever causes trouble.
 - Doc updated:
 
 ### Q-019: "never throws" and "throw new Error('webhook event row missing')" in `processPaymentEvent`
@@ -184,8 +184,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The task says `processPaymentEvent` never throws, and also says to `throw new Error("webhook event row missing")` when the row is gone after a duplicate-key error. I throw that error inside the claim step and catch it at the top of `processPaymentEvent`: it is logged (event id, type and message only) and the outcome is `"temporary_failure"` (HTTP 500, so the provider retries).
 - Options I see: A) keep it. B) let the error escape (the route then answers 500 through Next.js).
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): accepted: the error is logged and the webhook answers 500, so the provider retries.
 - Doc updated:
 
 ### Q-020: An existing T-012 test checks the whole checkout data object, so the new `wallet` field breaks it
@@ -203,8 +203,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (planner)
 - Question: The test seeds three activity rows dated 1–3 minutes ago and expects to find them on the first page of `/admin/activity` (20 rows). Every e2e run registers several users, and each registration adds a "Customer registered" row with the current time, so a second run within ~3 minutes pushes the seeded rows to page 2 and the test fails. CI runs e2e once on a fresh database, so CI is not affected; it only bites when a developer re-runs e2e quickly.
 - Options I see: A) date the seeded rows in the future of the run (e.g. now + 1 hour) so they stay on top. B) open `/admin/activity?customer=<the seeded customer email>` in the "newest first" test as well. C) leave it.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, cleanup 2026-11-19): fixed (option A). The seeded rows are dated one hour ahead; two full e2e runs back to back now both pass (58/58).
 - Doc updated:
 
 ### Q-022: `sendFeedbackReplyEmail` and its template do not exist, and T-016 does not list the files for them

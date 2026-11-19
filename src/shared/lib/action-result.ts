@@ -2,20 +2,23 @@ import { z } from "zod";
 import type { ActionResult } from "@/shared/types/action";
 import { AppError } from "@/shared/errors";
 
+// The failure half of ActionResult. It fits every ActionResult<T>, so actions that return data can return it too.
+export type ActionFailure = Extract<ActionResult, { ok: false }>;
+
 export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
 // The text fields of a submitted form, sent back so the form can show them again. Never put passwords in it.
 export type SubmittedValues = Record<string, string>;
 
 // Turns a zod error into an ActionResult. The top message is the first field message.
-export function validationFailure(error: z.ZodError, values: SubmittedValues): ActionResult {
+export function validationFailure(error: z.ZodError, values: SubmittedValues): ActionFailure {
   const fieldErrors: Record<string, string[]> = z.flattenError(error).fieldErrors;
   const firstMessage = Object.values(fieldErrors).flat()[0] ?? GENERIC_ERROR_MESSAGE;
   return { ok: false, error: firstMessage, fieldErrors, values };
 }
 
 // Turns an error caught in an action into an ActionResult. Only AppError messages are shown to the user.
-export function failureFrom(error: unknown, actionName: string, values: SubmittedValues): ActionResult {
+export function failureFrom(error: unknown, actionName: string, values: SubmittedValues): ActionFailure {
   if (error instanceof AppError) return { ok: false, error: error.message, values };
   console.error(`${actionName} failed`, error);
   return { ok: false, error: GENERIC_ERROR_MESSAGE, values };

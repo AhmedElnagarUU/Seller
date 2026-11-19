@@ -19,13 +19,6 @@ import { cancelWalletPayment, startWalletPayment } from "@/features/wallet-payme
 import { createProofUploadUrl, submitWalletProof } from "@/features/wallet-payments/wallet-payment-proof.service";
 import { approveWalletPayment, rejectWalletPayment } from "@/features/wallet-payments/wallet-payment-review.service";
 
-// validationFailure and failureFrom are typed for actions without data. A failure has the same shape for
-// every data type, so this only narrows the type (docs/QUESTIONS.md Q-009).
-function asUploadFailure(result: ActionResult): ActionResult<PresignedUpload> {
-  if (result.ok) throw new Error("Expected a failed action result.");
-  return result;
-}
-
 function revalidateCustomerPages(): void {
   revalidatePath("/account/wallet-payments/[id]", "page");
   revalidatePath("/account/orders");
@@ -70,12 +63,12 @@ export async function createProofUploadUrlAction(input: {
 }): Promise<ActionResult<PresignedUpload>> {
   const user = await requireUser();
   const parsed = createProofUploadUrlSchema.safeParse(input);
-  if (!parsed.success) return asUploadFailure(validationFailure(parsed.error, {}));
+  if (!parsed.success) return validationFailure(parsed.error, {});
   try {
     const upload = await createProofUploadUrl({ userId: user.id, ...parsed.data });
     return { ok: true, data: upload };
   } catch (error) {
-    return asUploadFailure(failureFrom(error, "createProofUploadUrlAction", {}));
+    return failureFrom(error, "createProofUploadUrlAction", {});
   }
 }
 

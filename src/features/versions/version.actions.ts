@@ -15,22 +15,15 @@ import { createVersion, createZipUploadUrl, updateVersionChanges } from "@/featu
 
 // These actions are called from client code (not from a <form>), so they take one unknown argument.
 
-// validationFailure and failureFrom are typed for actions without data. A failure has the same shape for
-// every data type, so this only narrows the type (docs/QUESTIONS.md Q-009).
-function asUploadFailure(result: ActionResult): ActionResult<PresignedUpload> {
-  if (result.ok) throw new Error("Expected a failed action result.");
-  return result;
-}
-
 export async function createZipUploadUrlAction(input: unknown): Promise<ActionResult<PresignedUpload>> {
   await requireAdmin();
   const parsed = createZipUploadUrlSchema.safeParse(input);
-  if (!parsed.success) return asUploadFailure(validationFailure(parsed.error, {}));
+  if (!parsed.success) return validationFailure(parsed.error, {});
   try {
     const upload = await createZipUploadUrl(parsed.data);
     return { ok: true, data: upload };
   } catch (error) {
-    return asUploadFailure(failureFrom(error, "createZipUploadUrlAction", {}));
+    return failureFrom(error, "createZipUploadUrlAction", {});
   }
 }
 

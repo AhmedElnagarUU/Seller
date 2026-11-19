@@ -9,8 +9,12 @@ const CUSTOMER_NAME = `Activity Customer ${RUN_ID}`;
 const CUSTOMER_EMAIL = `activity-${RUN_ID}@example.com`;
 const MINUTE_MS = 60_000;
 
+// The seeded rows are dated one hour ahead, so rows written by other e2e files (registrations) never push them
+// off the first page (Q-021). Their order stays the same: a higher number is older.
+const SEED_BASE_MS = Date.now() + 60 * MINUTE_MS;
+
 function minutesAgo(minutes: number): Date {
-  return new Date(Date.now() - minutes * MINUTE_MS);
+  return new Date(SEED_BASE_MS - minutes * MINUTE_MS);
 }
 
 test.describe("e2e activity", () => {
