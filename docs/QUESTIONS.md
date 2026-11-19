@@ -230,6 +230,6 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: (1) The announcement form's "Also send by email" checkbox: the task gives no default, so it starts unchecked. (2) `retryNotificationJob` resets only `status`, `attempts` and `error` as 09 §5.5 says; `finishedAt` and `lockedUntil` of the failed job are left as they are (the processor sets `finishedAt` again when the job ends). (3) In the announcement list, an owners job whose theme is not found shows `"Owners of a theme"` and a one-customer job whose customer is not found shows `"One customer"` (17-G gives no text for these cases; themes and users are never deleted, so it should not happen). (4) The `ownerships` admin actions turn an empty grant note into `null` in the action (the service `grantByAdmin` already takes `note: string | null`). (5) The status fields of `CustomerOrderRowDTO` / `CustomerWalletRowDTO` use the existing status union types instead of `string`, so the page can look up the existing label constants.
 - Options I see: A) keep it. B) change as you say.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, 2026-11-19): accepted as listed ("Also send by email" unchecked by default, the retry resets, the audience label fallbacks, empty grant note → null, typed status unions).
 - Doc updated:
