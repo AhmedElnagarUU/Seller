@@ -26,6 +26,12 @@ export const ORDER_STATUS_TONES = {
 
 export const ORDER_METHOD_LABELS: Record<OrderMethod, string> = { card: "Card", wallet: "Wallet" };
 
+export const PROVIDER_LABELS: Record<OrderProviderName, string> = {
+  polar: "Polar",
+  fake: "Fake provider",
+  manual_wallet: "Manual wallet",
+};
+
 // Saved in webhookEvents.error when a payment event fails (docs/06-payments.md section 6.3).
 export const ORDER_EVENT_MESSAGES = {
   invalidUser: "The payment event has no valid user.",

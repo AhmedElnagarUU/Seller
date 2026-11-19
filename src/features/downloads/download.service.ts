@@ -45,3 +45,11 @@ export async function createDownloadLink(input: CreateDownloadLinkInput): Promis
   });
   return { url };
 }
+
+// The themes with the most downloads from a moment on (or for all time when `since` is null).
+export async function getTopThemesByDownloads(
+  since: Date | null,
+  limit: number,
+): Promise<{ themeId: string; count: number }[]> {
+  return downloadLogRepository.topThemesByDownloads(since, limit);
+}

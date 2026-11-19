@@ -2,6 +2,7 @@ import { formatDate } from "@/shared/lib/dates";
 import { formatPrice } from "@/shared/lib/money";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/shared/ui/Table";
 import { Text } from "@/shared/ui/Text";
+import { TextLink } from "@/shared/ui/TextLink";
 import { ORDER_METHOD_LABELS, ORDER_STATUS_LABELS } from "@/features/orders/order.constants";
 import { CUSTOMER_MESSAGES } from "@/features/users/user.constants";
 import type { CustomerOrderRowDTO } from "@/features/users/user.types";
@@ -21,6 +22,7 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
           <TableHeaderCell>Method</TableHeaderCell>
           <TableHeaderCell>Total</TableHeaderCell>
           <TableHeaderCell>Status</TableHeaderCell>
+          <TableHeaderCell>Order</TableHeaderCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -31,6 +33,9 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
             <TableCell>{ORDER_METHOD_LABELS[order.method]}</TableCell>
             <TableCell>{formatPrice(order.totalAmount, order.currency)}</TableCell>
             <TableCell>{ORDER_STATUS_LABELS[order.status]}</TableCell>
+            <TableCell>
+              <TextLink href={`/admin/orders/${order.id}`}>View</TextLink>
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
