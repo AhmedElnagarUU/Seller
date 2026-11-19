@@ -88,7 +88,7 @@ e2e/checkout.spec.ts
 | `alreadyOwned` | `You already own this theme.` |
 | `cardUnavailable` | `Card payment is not available for this theme right now. Please try again later.` |
 
-Event-processing messages (stored in `webhookEvents.error`; the docs say "store message" but give no texts) — `[PLANNER: confirm]` — in `order.constants.ts` (`ORDER_EVENT_MESSAGES`) and `webhook-event.constants.ts`:
+Event-processing messages (stored in `webhookEvents.error`; the docs say "store message" but give no texts) — `[DECIDED: texts below confirmed]` — in `order.constants.ts` (`ORDER_EVENT_MESSAGES`) and `webhook-event.constants.ts`:
 
 | Key | Text | Used when |
 |---|---|---|
@@ -99,7 +99,7 @@ Event-processing messages (stored in `webhookEvents.error`; the docs say "store 
 | `refundOrderMissing` | `The order for this refund was not found yet. The event will be retried.` | refund before its `order.paid` (temporary) |
 | `simulateFailed` | `The test payment could not be processed.` | fake checkout (shown to the developer) |
 
-`[PLANNER: coupon id of a paid order that is not a valid or known coupon. The docs list only user, theme and currency as permanent errors. Recommended: save the order WITHOUT a coupon (couponId and couponCode null, amounts from Polar) — money was taken, so the order must not be lost. Confirm.]`
+`[DECIDED by owner: save the order WITHOUT a coupon (couponId and couponCode null, amounts from Polar); money was taken, so the order must not be lost. This also covers a coupon the admin deleted during the payment (D-018).]`
 
 ## Order service (`order.service.ts`) — 03 §7, §19
 
@@ -138,7 +138,7 @@ export type PaymentEventOutcome = "processed" | "ignored" | "duplicate" | "perma
 // The ONE place that turns a payment event into database changes. Never throws.
 export async function processPaymentEvent(event: PaymentEvent, providerName: ProviderName): Promise<PaymentEventOutcome>
 ```
-`[PLANNER: 06 §6.3 shows processPaymentEvent(event). It needs the provider name for webhookEvents.provider and orders.provider.name, and a typed result for the HTTP status. Recommended: this signature. Confirm.]`
+`[DECIDED: this signature.]`
 
 Steps:
 1. **Claim** (`webhook-event.repository.ts`: `insertProcessingEvent`, `findEvent`, `setEventStatus`, `markProcessed`, `markFailed`): insert `{ provider: providerName, eventId: event.eventId, type: event.type.slice(0, 100), status: "processing" }`.
@@ -160,7 +160,7 @@ Never log the webhook body (06 §6.4): only `eventId`, `type` and our message.
 // Uses only the standard Request / Response types, so it can move to Express (06 §1).
 export async function handlePaymentWebhook(request: Request, provider: PaymentProvider = getPaymentProvider()): Promise<Response>
 ```
-`[PLANNER: the second parameter is only there so tests can pass the real Polar provider (the global test fake replaces getPaymentProvider). The route never passes it. Confirm.]`
+`[DECIDED: as written; the route never passes it.]`
 
 | Step | Action | Response |
 |---|---|---|
@@ -231,7 +231,7 @@ Components (layout classes only; visual look comes from the UI kit):
 - `FakeCheckoutForm` (`"use client"`, props `checkoutId`, `themeId`, `couponId`, `data`): Heading 1 `Fake checkout (test mode)`, the summary rows, hidden fields, `FormError`, `SubmitButton` `Simulate successful payment` / `Processing…`.
 - `OrderTable`: shared `Table`; columns `Date` (`formatDate(paidAt)`), `Theme` (`TextLink` to `/themes/<slug>`), `Method`, `Total` (`formatPrice(totalAmount, currency)`), `Status` (`Badge` with the label and tone constants).
 
-`[PLANNER: headings, labels and helper texts of the checkout, country, success-waiting and fake pages are not in the docs, except "Continue to payment" (00 §3.3), "Thank you! <Theme> is yours.", "Confirming your payment…", the "Your payment is being confirmed…" text (06 §5.4), "Simulate successful payment" (06 §8), the order table columns and "No orders yet." (05 §4). Confirm all others.]`
+`[DECIDED by owner: all texts above are confirmed.]`
 
 ## Email #3 (`OrderConfirmationEmail`, `sendOrderConfirmationEmail`) — 09 §3
 
