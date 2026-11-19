@@ -121,8 +121,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The first test of `src/features/auth/auth.service.test.ts` ("registerUser › creates the user with country and default settings") sometimes fails with `MongoServerError: Unable to write to collection 'themestore-test.user' due to catalog changes; please retry the operation`. I measured it by running that one file many times: 1 of 15 runs fails on the T-004 code (before my tasks), and 5 of 24 on the current code. It looks like a race: Better Auth creates the first user in a transaction while Mongoose is still building the indexes of the `user` collection for `UserModel`. When it happens, `pnpm test` or `pnpm test:coverage` fails and a re-run passes. I did not change any existing test or the test setup (not in my file list).
 - Options I see: A) in `src/shared/test/setup.ts`, `await UserModel.init()` in `beforeAll` so the indexes exist before any test runs. B) leave it and re-run when it fails.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, 2026-11-19): fixed in T-020: `src/shared/test/setup.ts` now calls `ensureDatabase()` before any test, so the `user` collection and its indexes exist before Better Auth's first transaction. 0 failures in 10 runs of `auth.service.test.ts`.
 - Doc updated:
 
 ### Q-013: `ChangesEditor` needs controlled fields, but `SelectField` and `TextField` have no `onChange`
@@ -248,6 +248,6 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: (1) The task says `console.log("database ready")`, but the lint rule `no-console` only allows `error` and `warn` (and rules must not be disabled). I used `console.warn("database ready")`, the same way `email.sender.ts` logs its info line. (2) The project has no `public/` folder, so a plain `COPY .../public` in the Dockerfile would fail; the `build` stage runs `mkdir -p public` so the copy works now and when a folder is added later. (3) `ALL_MODELS` is typed as a small `ModelToBuild[]` type (`collection.collectionName`, `createCollection`, `syncIndexes`) because Mongoose `Model` types of different schemas cannot share one array type without a cast. (4) Q-012 stays OPEN in its own entry: with `await ensureDatabase()` in the test setup, `auth.service.test.ts` passed 10 of 10 runs. (5) `deploy.sh` reads the port for its health check from the container's own `PORT` variable (set in Compose), so one command works for both apps. (6) `pingDatabase` returns `false` at once when `timeoutMs` is 0 or less: with a plain timer race, a very fast local ping could win against `setTimeout(0)` and the required test "is false after a timeout" failed once in 3 runs under coverage.
 - Options I see: A) keep it. B) change as you say.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, 2026-11-19): accepted as listed. Also accepted: the build step removes `.next/standalone/.env` in the same `RUN` (Next.js copies `.env` into the standalone output), so no image layer contains the env file.
 - Doc updated:
