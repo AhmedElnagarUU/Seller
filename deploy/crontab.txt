@@ -1,0 +1,4 @@
+# The owner replaces <domain>, <production CRON_SECRET> and <staging CRON_SECRET>, then installs these lines with `crontab -e`.
+* * * * *  curl -fsS -m 55 -X POST -H "Authorization: Bearer <production CRON_SECRET>" https://<domain>/api/cron/process-notifications > /dev/null
+* * * * *  curl -fsS -m 55 -X POST -H "Authorization: Bearer <staging CRON_SECRET>" https://staging.<domain>/api/cron/process-notifications > /dev/null
+30 2 * * * /srv/themestore/src/deploy/backup.sh production >> /srv/themestore/backup.log 2>&1

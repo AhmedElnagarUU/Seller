@@ -242,3 +242,12 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: ANSWERED
 - Answer (planner, 2026-11-19): accepted. `changePassword` without the option, then `auth.api.revokeOtherSessions({ headers })`, keeps the current session and ends all others, which is what the task wants.
 - Doc updated: —
+
+### Q-026: Small differences between the T-020 text and the lint rules / project layout
+- Task: T-020
+- Asked by: Claude (implementing agent)
+- Question: (1) The task says `console.log("database ready")`, but the lint rule `no-console` only allows `error` and `warn` (and rules must not be disabled). I used `console.warn("database ready")`, the same way `email.sender.ts` logs its info line. (2) The project has no `public/` folder, so a plain `COPY .../public` in the Dockerfile would fail; the `build` stage runs `mkdir -p public` so the copy works now and when a folder is added later. (3) `ALL_MODELS` is typed as a small `ModelToBuild[]` type (`collection.collectionName`, `createCollection`, `syncIndexes`) because Mongoose `Model` types of different schemas cannot share one array type without a cast. (4) Q-012 stays OPEN in its own entry: with `await ensureDatabase()` in the test setup, `auth.service.test.ts` passed 10 of 10 runs. (5) `deploy.sh` reads the port for its health check from the container's own `PORT` variable (set in Compose), so one command works for both apps. (6) `pingDatabase` returns `false` at once when `timeoutMs` is 0 or less: with a plain timer race, a very fast local ping could win against `setTimeout(0)` and the required test "is false after a timeout" failed once in 3 runs under coverage.
+- Options I see: A) keep it. B) change as you say.
+- Status: OPEN
+- Answer:
+- Doc updated:

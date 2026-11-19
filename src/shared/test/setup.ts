@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { afterAll, beforeAll, beforeEach, vi } from "vitest";
+import { ensureDatabase } from "@/shared/db/ensure-database";
 import { setTestNow } from "@/shared/lib/clock";
 import { fakeEmailSender } from "@/shared/test/fakes/fake-email-sender";
 import { fakePaymentProvider } from "@/shared/test/fakes/fake-payment-provider";
@@ -26,6 +27,7 @@ vi.mock("@/shared/storage/s3", () => ({
 
 beforeAll(async () => {
   await mongoose.connect(process.env.MONGODB_URI ?? "");
+  await ensureDatabase();
 });
 
 beforeEach(async () => {

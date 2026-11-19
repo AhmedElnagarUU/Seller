@@ -1,0 +1,74 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: /srv/themestore/deploy.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/themestore/certs:/certs:ro
+      - caddy-data:/data
+    logging: *default-logging
+
+  app-production:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      secrets:
+        - appenv-production
+    env_file: /srv/themestore/production.env
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  app-staging:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      secrets:
+        - appenv-staging
+    env_file: /srv/themestore/staging.env
+    environment:
+      PORT: "3001"
+      HOSTNAME: "0.0.0.0"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+secrets:
+  appenv-production:
+    file: /srv/themestore/production.env
+  appenv-staging:
+    file: /srv/themestore/staging.env
+
+volumes:
+  caddy-data:

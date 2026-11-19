@@ -1,0 +1,11 @@
+{$DOMAIN} {
+	tls /certs/origin.pem /certs/origin.key
+	encode gzip
+	reverse_proxy app-production:3000
+}
+
+staging.{$DOMAIN} {
+	tls /certs/origin.pem /certs/origin.key
+	encode gzip
+	reverse_proxy app-staging:3001
+}
