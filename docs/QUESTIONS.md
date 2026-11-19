@@ -195,6 +195,5 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Options I see: A) keep my one-line change. B) change the task text and `wallet` to be left out when it is `null` (not what the task says). C) another change you prefer.
 - Status: ANSWERED
 - Answer (planner, 2026-11-19): accepted. Adding `wallet: null` to that expected object is the intended change: the field is new in T-013 and the assertion is stricter, not weaker.
-- Answer:
 - Doc updated:
 
