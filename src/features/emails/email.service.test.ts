@@ -1,8 +1,14 @@
 import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
-import { sendOrderConfirmationEmail, sendVerifyEmail } from "@/features/emails/email.service";
+import {
+  sendAdminWalletReviewEmail,
+  sendOrderConfirmationEmail,
+  sendVerifyEmail,
+  sendWalletApprovedEmail,
+  sendWalletRejectedEmail,
+} from "@/features/emails/email.service";
 import { fakeEmailSender } from "@/shared/test/fakes/fake-email-sender";
-import { createCoupon, createOrder, createUser } from "@/shared/test/factories";
+import { createCoupon, createOrder, createUser, createWalletPayment } from "@/shared/test/factories";
 
 describe("sendVerifyEmail", () => {
   it("sends subject 'Confirm your email address' with the name and URL in both html and text", async () => {
@@ -93,6 +99,97 @@ describe("sendOrderConfirmationEmail", () => {
       code: "NOT_FOUND",
       message: "Order not found.",
     });
+    expect(fakeEmailSender.sent).toHaveLength(0);
+  });
+});
+
+describe("wallet emails", () => {
+  async function createPayment(overrides: Parameters<typeof createWalletPayment>[0] = {}) {
+    const user = await createUser({ name: "Ann Lee", email: "ann@example.com", country: "EG" });
+    return createWalletPayment({
+      userId: user._id,
+      referenceCode: "TS-ABCDEF",
+      status: "submitted",
+      senderPhone: "01012345678",
+      ...overrides,
+    });
+  }
+
+  it("sendWalletApprovedEmail › subject, 1,450 EGP, the reference, link /account/themes; no settings link; no /api/downloads/", async () => {
+    const payment = await createPayment({ status: "approved" });
+
+    await sendWalletApprovedEmail({ walletPaymentId: payment._id.toString() });
+
+    expect(fakeEmailSender.sent).toHaveLength(1);
+    const email = fakeEmailSender.sent[0];
+    expect(email?.to).toBe("ann@example.com");
+    expect(email?.subject).toBe(`Payment approved: ${payment.themeSnapshot.name} is yours`);
+    expect(email?.templateName).toBe("WalletApprovedEmail");
+    for (const part of [email?.html, email?.text]) {
+      expect(part).toContain("Hi Ann Lee,");
+      expect(part).toContain("1,450 EGP");
+      expect(part).toContain("TS-ABCDEF");
+      expect(part).toContain(payment.themeSnapshot.name);
+      expect(part).toContain("with free updates for life.");
+      expect(part).toContain("http://localhost:3000/account/themes");
+      expect(part).toContain("Download your theme");
+      expect(part).not.toContain("/account/settings");
+      expect(part).not.toContain("/api/downloads/");
+    }
+  });
+
+  it("sendWalletRejectedEmail › subject, the reason, link /account/wallet-payments/<id>", async () => {
+    const payment = await createPayment({ status: "rejected", rejectionReason: "Money not received yet" });
+    const id = payment._id.toString();
+
+    await sendWalletRejectedEmail({ walletPaymentId: id });
+
+    const email = fakeEmailSender.sent[0];
+    expect(email?.to).toBe("ann@example.com");
+    expect(email?.subject).toBe(`We could not confirm your payment for ${payment.themeSnapshot.name}`);
+    expect(email?.templateName).toBe("WalletRejectedEmail");
+    for (const part of [email?.html, email?.text]) {
+      expect(part).toContain("Reason: Money not received yet");
+      expect(part).toContain("TS-ABCDEF");
+      expect(part).toContain("If you already sent the money, reply to this email with your transfer details");
+      expect(part).toContain(`http://localhost:3000/account/wallet-payments/${id}`);
+      expect(part).toContain("View payment");
+      expect(part).not.toContain("/api/downloads/");
+    }
+  });
+
+  it("sendAdminWalletReviewEmail › goes to admin@example.com with customer, amount, reference, sender phone and the review link", async () => {
+    const payment = await createPayment();
+    const id = payment._id.toString();
+
+    await sendAdminWalletReviewEmail({ walletPaymentId: id });
+
+    const email = fakeEmailSender.sent[0];
+    expect(email?.to).toBe("admin@example.com");
+    expect(email?.subject).toBe("New wallet payment to review: TS-ABCDEF");
+    expect(email?.templateName).toBe("AdminWalletReviewEmail");
+    for (const part of [email?.html, email?.text]) {
+      expect(part).toContain("Ann Lee");
+      expect(part).toContain("ann@example.com");
+      expect(part).toContain("1,450 EGP");
+      expect(part).toContain("TS-ABCDEF");
+      expect(part).toContain("01012345678");
+      expect(part).toContain(payment.themeSnapshot.name);
+      expect(part).toContain("Check that the money arrived before approving.");
+      expect(part).toContain(`http://localhost:3000/admin/wallet-payments/${id}`);
+    }
+  });
+
+  it("an unknown payment → NOT_FOUND 'Payment request not found.'; nothing is sent", async () => {
+    const unknownId = new Types.ObjectId().toString();
+
+    for (const send of [sendWalletApprovedEmail, sendWalletRejectedEmail, sendAdminWalletReviewEmail]) {
+      await expect(send({ walletPaymentId: unknownId })).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        message: "Payment request not found.",
+      });
+    }
+
     expect(fakeEmailSender.sent).toHaveLength(0);
   });
 });

@@ -4,6 +4,7 @@ import { UserModel } from "@/features/users/user.model";
 import {
   getUserIdByEmail,
   getUserNames,
+  getUserSummaries,
   getUserSummary,
   isAdminEmail,
   setUserCountry,
@@ -91,5 +92,33 @@ describe("getUserSummary", () => {
   it("returns null for an invalid id and for an unknown id", async () => {
     expect(await getUserSummary("not-an-id")).toBeNull();
     expect(await getUserSummary(new Types.ObjectId().toString())).toBeNull();
+  });
+});
+
+describe("getUserSummaries", () => {
+  it("returns id, name, email and country for known ids and skips unknown and invalid ids", async () => {
+    const ann = await createUser({ name: "Ann Lee", email: "ann@example.com", country: "EG" });
+    const bob = await createUser({ name: "Bob Ray", email: "bob@example.com", country: null });
+
+    const summaries = await getUserSummaries([
+      ann._id.toString(),
+      bob._id.toString(),
+      new Types.ObjectId().toString(),
+      "x",
+    ]);
+
+    expect(summaries).toHaveLength(2);
+    expect(summaries).toContainEqual({
+      id: ann._id.toString(),
+      name: "Ann Lee",
+      email: "ann@example.com",
+      country: "EG",
+    });
+    expect(summaries).toContainEqual({
+      id: bob._id.toString(),
+      name: "Bob Ray",
+      email: "bob@example.com",
+      country: null,
+    });
   });
 });

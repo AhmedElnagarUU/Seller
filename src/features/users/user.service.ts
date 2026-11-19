@@ -38,3 +38,14 @@ export async function getUserSummary(userId: string): Promise<UserSummary | null
   if (!user) return null;
   return { id: user._id.toString(), name: user.name, email: user.email, country: user.country ?? null };
 }
+
+// The summaries of the users that exist. Invalid and unknown ids are skipped. One query.
+export async function getUserSummaries(userIds: string[]): Promise<UserSummary[]> {
+  const users = await userRepository.findUserSummariesByIds(userIds);
+  return users.map((user) => ({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    country: user.country ?? null,
+  }));
+}

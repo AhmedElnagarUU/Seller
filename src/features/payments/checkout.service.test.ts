@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setTestNow } from "@/shared/lib/clock";
 import { fakePaymentProvider } from "@/shared/test/fakes/fake-payment-provider";
-import { createCoupon, createOwnership, createTheme, createUser } from "@/shared/test/factories";
+import { createCoupon, createOwnership, createTheme, createUser, setSettings } from "@/shared/test/factories";
 import { CouponModel } from "@/features/coupons/coupon.model";
 import { OrderModel } from "@/features/orders/order.model";
 import {
@@ -216,6 +216,7 @@ describe("getCheckoutPageData", () => {
       quote: { couponId: coupon._id.toString(), code: coupon.code, discountCents: 580, finalCents: 2320 },
       couponError: null,
       finalPriceCents: 2320,
+      wallet: null,
     });
   });
 
@@ -381,5 +382,26 @@ describe("simulateFakePayment", () => {
       }),
     ).rejects.toMatchObject({ code: "INVALID", message: "The test payment could not be processed." });
     expect(await OrderModel.countDocuments()).toBe(0);
+  });
+});
+
+describe("getCheckoutPageData wallet option", () => {
+  const ACCOUNT = { label: "Vodafone Cash", account: "01012345678", instructions: "" };
+
+  it("wallet is { amountEgp: 1114, exchangeRate: 48 } for an Egyptian user, wallet enabled, 20 % coupon, rate 48; null for another country; null when disabled", async () => {
+    await createCoupon({ code: "SAVE20", percentOff: 20 });
+    const theme = await createPublishedTheme();
+    const egyptian = await createUser({ country: "EG" });
+    const american = await createUser({ country: "US" });
+    await setSettings({ walletEnabled: true, usdToEgpRate: 48, walletAccounts: [ACCOUNT] });
+
+    const forEgypt = await getCheckoutPageData(egyptian._id.toString(), theme.slug, "SAVE20");
+    const forUs = await getCheckoutPageData(american._id.toString(), theme.slug, "SAVE20");
+    await setSettings({ walletEnabled: false, usdToEgpRate: 48, walletAccounts: [ACCOUNT] });
+    const whenDisabled = await getCheckoutPageData(egyptian._id.toString(), theme.slug, "SAVE20");
+
+    expect(forEgypt.kind === "ready" ? forEgypt.wallet : "not ready").toEqual({ amountEgp: 1114, exchangeRate: 48 });
+    expect(forUs.kind === "ready" ? forUs.wallet : "not ready").toBeNull();
+    expect(whenDisabled.kind === "ready" ? whenDisabled.wallet : "not ready").toBeNull();
   });
 });

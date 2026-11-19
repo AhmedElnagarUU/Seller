@@ -48,3 +48,15 @@ export async function findUserSummaryById(
     .select({ name: 1, email: 1, country: 1 })
     .lean<Pick<UserRecord, "_id" | "name" | "email" | "country">>();
 }
+
+// Finds the users with these ids. Invalid and unknown ids are skipped. One query.
+export async function findUserSummariesByIds(
+  ids: string[],
+): Promise<Pick<UserRecord, "_id" | "name" | "email" | "country">[]> {
+  const objectIds = ids.map(parseObjectId).filter((objectId) => objectId !== null);
+  if (objectIds.length === 0) return [];
+  await connectDB();
+  return UserModel.find({ _id: { $in: objectIds } })
+    .select({ name: 1, email: 1, country: 1 })
+    .lean<Pick<UserRecord, "_id" | "name" | "email" | "country">[]>();
+}

@@ -3,10 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { PageContainer } from "@/shared/layout/PageContainer";
 import { Stack } from "@/shared/layout/Stack";
 import { requireVerifiedUser } from "@/features/auth/session";
-import { CardCheckoutForm } from "@/features/payments/components/CardCheckoutForm";
 import { CheckoutSummary } from "@/features/payments/components/CheckoutSummary";
 import { CountryForm } from "@/features/payments/components/CountryForm";
 import { CouponField } from "@/features/payments/components/CouponField";
+import { PaymentMethodPicker } from "@/features/payments/components/PaymentMethodPicker";
 import { checkoutSearchParamsSchema } from "@/features/payments/checkout.schemas";
 import { getCheckoutPageData } from "@/features/payments/checkout.service";
 
@@ -41,7 +41,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
       <Stack gap="lg">
         <CheckoutSummary theme={data.theme} quote={data.quote} finalPriceCents={data.finalPriceCents} />
         <CouponField slug={data.theme.slug} couponCode={data.couponCode} error={data.couponError} />
-        <CardCheckoutForm slug={data.theme.slug} couponCode={data.couponCode} />
+        <PaymentMethodPicker slug={data.theme.slug} couponCode={data.couponCode} wallet={data.wallet} />
       </Stack>
     </PageContainer>
   );

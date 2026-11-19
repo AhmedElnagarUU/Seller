@@ -187,3 +187,13 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Status: OPEN
 - Answer:
 - Doc updated:
+
+### Q-020: An existing T-012 test checks the whole checkout data object, so the new `wallet` field breaks it
+- Task: T-013
+- Asked by: Claude (implementing agent)
+- Question: T-013 says the T-012 tests of `getCheckoutPageData` "check single properties and keep passing unchanged". One of them does not: `checkout.service.test.ts` › `getCheckoutPageData` › "ready: the 20 % coupon gives quote.finalCents 2320 and finalPriceCents 2320" compares the whole object with `toEqual`, and the object now also has `wallet: null` (the test user has no country). The field is required by the task, so the test cannot pass as it is. I added the single line `wallet: null,` to its expected object and changed nothing else in that test (the assertion is stricter now, not weaker).
+- Options I see: A) keep my one-line change. B) change the task text and `wallet` to be left out when it is `null` (not what the task says). C) another change you prefer.
+- Status: OPEN
+- Answer:
+- Doc updated:
+

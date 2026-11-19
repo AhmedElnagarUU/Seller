@@ -7,6 +7,8 @@ import { requireUser } from "@/features/auth/session";
 import { OrderTable } from "@/features/orders/components/OrderTable";
 import { orderListSearchParamsSchema } from "@/features/orders/order.schemas";
 import { listOrdersForUser } from "@/features/orders/order.service";
+import { WalletPaymentTable } from "@/features/wallet-payments/components/WalletPaymentTable";
+import { listWalletPaymentsForUser } from "@/features/wallet-payments/wallet-payment.service";
 
 export const metadata: Metadata = {
   title: "Orders · Theme Store",
@@ -20,7 +22,10 @@ type AccountOrdersPageProps = {
 export default async function AccountOrdersPage({ searchParams }: AccountOrdersPageProps) {
   const user = await requireUser("/account/orders");
   const { page } = orderListSearchParamsSchema.parse(await searchParams);
-  const orders = await listOrdersForUser(user.id, page);
+  const [orders, walletPayments] = await Promise.all([
+    listOrdersForUser(user.id, page),
+    listWalletPaymentsForUser(user.id),
+  ]);
 
   return (
     <Stack>
@@ -31,6 +36,12 @@ export default async function AccountOrdersPage({ searchParams }: AccountOrdersP
         totalPages={orders.totalPages}
         buildHref={(pageNumber) => `/account/orders?page=${pageNumber}`}
       />
+      {walletPayments.length === 0 ? null : (
+        <>
+          <Heading level={2}>Wallet payments</Heading>
+          <WalletPaymentTable payments={walletPayments} />
+        </>
+      )}
     </Stack>
   );
 }

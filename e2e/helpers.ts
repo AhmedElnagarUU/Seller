@@ -17,12 +17,13 @@ export function readMongoUri(): string {
   return process.env.MONGODB_URI ?? "";
 }
 
-export async function registerAs(page: Page, email: string): Promise<void> {
+// `country` is the value of the Country select ("EG" is Egypt).
+export async function registerAs(page: Page, email: string, country: string = "EG"): Promise<void> {
   await page.goto("/register");
   await page.getByLabel("Name").fill("E2E Person");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByLabel("Country").selectOption("EG");
+  await page.getByLabel("Country").selectOption(country);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Confirm your email" })).toBeVisible();
 }

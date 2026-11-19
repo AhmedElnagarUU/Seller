@@ -9,6 +9,9 @@ export type CheckoutThemeDTO = {
   priceCents: number;
 };
 
+// What the wallet option of the checkout page shows.
+export type CheckoutWalletDTO = { amountEgp: number; exchangeRate: number };
+
 export type CheckoutPageData =
   | { kind: "not_found" }
   | { kind: "owned" }
@@ -19,6 +22,8 @@ export type CheckoutPageData =
       quote: CouponQuote | null;
       couponError: string | null;
       finalPriceCents: number;
+      // The wallet option. null when the customer cannot pay by wallet.
+      wallet: CheckoutWalletDTO | null;
     };
 
 // What the fake checkout page shows.

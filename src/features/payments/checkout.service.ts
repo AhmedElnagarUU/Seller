@@ -1,16 +1,21 @@
 import { env } from "@/shared/config/env";
 import { AppError } from "@/shared/errors";
 import { now } from "@/shared/lib/clock";
+import { usdCentsToEgpPounds } from "@/shared/lib/money";
 import { ensureDiscountId, getCouponSummary, quote } from "@/features/coupons/coupon.service";
 import type { CouponQuote } from "@/features/coupons/coupon.types";
 import { ORDER_EVENT_MESSAGES } from "@/features/orders/order.constants";
 import { hasActiveOwnership } from "@/features/ownerships/ownership.service";
 import { CHECKOUT_MESSAGES } from "@/features/payments/checkout.constants";
-import type { CheckoutPageData, FakeCheckoutDTO } from "@/features/payments/checkout.types";
+import type { CheckoutPageData, CheckoutWalletDTO, FakeCheckoutDTO } from "@/features/payments/checkout.types";
 import { getPaymentProvider } from "@/features/payments/payment.provider";
 import { processPaymentEvent } from "@/features/payments/payment-event.service";
+import { getWalletSettings } from "@/features/settings/settings.service";
 import { getThemeForPurchase, getThemeForPurchaseById } from "@/features/themes/theme.service";
 import type { ThemePurchaseDTO } from "@/features/themes/theme.types";
+import { getUserSummary } from "@/features/users/user.service";
+
+const EGYPT_COUNTRY_CODE = "EG";
 
 type StartCardCheckoutInput = {
   userId: string;
@@ -29,6 +34,18 @@ function isPublished(theme: ThemePurchaseDTO | null): theme is ThemePurchaseDTO 
 function toCardUnavailableError(reason: string, themeId: string): AppError {
   console.error(reason, themeId);
   return new AppError("INVALID", CHECKOUT_MESSAGES.cardUnavailable);
+}
+
+// The wallet option of the checkout page: only for customers in Egypt, and only while wallet payments are on.
+async function findWalletOption(userId: string, finalPriceCents: number): Promise<CheckoutWalletDTO | null> {
+  const user = await getUserSummary(userId);
+  if (user?.country !== EGYPT_COUNTRY_CODE) return null;
+  const settings = await getWalletSettings();
+  if (!settings.walletEnabled) return null;
+  return {
+    amountEgp: usdCentsToEgpPounds(finalPriceCents, settings.usdToEgpRate),
+    exchangeRate: settings.usdToEgpRate,
+  };
 }
 
 // The data of /checkout/[slug]: the theme, the coupon check and the price to pay (docs/06-payments.md section 5.2).
@@ -51,13 +68,15 @@ export async function getCheckoutPageData(
       couponError = error.message;
     }
   }
+  const finalPriceCents = couponQuote?.finalCents ?? theme.priceCents;
   return {
     kind: "ready",
     theme: { id: theme.id, slug: theme.slug, name: theme.name, tagline: theme.tagline, priceCents: theme.priceCents },
     couponCode: code === "" ? null : code,
     quote: couponQuote,
     couponError,
-    finalPriceCents: couponQuote?.finalCents ?? theme.priceCents,
+    finalPriceCents,
+    wallet: await findWalletOption(userId, finalPriceCents),
   };
 }
 

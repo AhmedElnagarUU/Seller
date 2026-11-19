@@ -14,3 +14,12 @@ export function formatPrice(amount: number, currency: Currency): string {
   const formatter = hasFraction ? egpFractionFormatter : egpWholeFormatter;
   return `${formatter.format(units)} EGP`;
 }
+
+const RATE_HUNDREDTHS_FACTOR = 100;
+const RATE_DIVISOR = 10_000;
+
+// USD cents to whole Egyptian pounds, rounded up. Integer math only (D-101).
+export function usdCentsToEgpPounds(cents: number, rate: number): number {
+  const rateHundredths = Math.round(rate * RATE_HUNDREDTHS_FACTOR);
+  return Math.ceil((cents * rateHundredths) / RATE_DIVISOR);
+}

@@ -4,10 +4,14 @@ import { CategoryModel, type CategoryRecord } from "@/features/categories/catego
 import { CouponModel, type CouponRecord } from "@/features/coupons/coupon.model";
 import { OrderModel, type OrderRecord } from "@/features/orders/order.model";
 import { OwnershipModel, type OwnershipRecord } from "@/features/ownerships/ownership.model";
+import { SettingsModel } from "@/features/settings/settings.model";
+import type { WalletSettingsDTO } from "@/features/settings/settings.types";
 import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
 import type { ChangeType } from "@/features/versions/version.constants";
 import { VersionModel, type VersionRecord } from "@/features/versions/version.model";
+import { generateReferenceCode } from "@/features/wallet-payments/wallet-payment.reference";
+import { WalletPaymentModel, type WalletPaymentRecord } from "@/features/wallet-payments/wallet-payment.model";
 import { now } from "@/shared/lib/clock";
 
 // Test data with valid defaults. Every factory takes overrides for the fields a test cares about.
@@ -201,4 +205,51 @@ export async function createOrder(overrides: OrderOverrides = {}): Promise<Order
   });
   await order.save();
   return order.toObject();
+}
+
+type WalletPaymentOverrides = Partial<Omit<WalletPaymentRecord, "_id">>;
+
+// A wallet payment request of 1,450 EGP (2900 cents at rate 50) that waits for payment. Creates an Egyptian user
+// and a published theme when `userId` / `themeId` are missing. `isOpen` follows the status unless you pass it.
+export async function createWalletPayment(overrides: WalletPaymentOverrides = {}): Promise<WalletPaymentRecord> {
+  const userId = overrides.userId ?? (await createUser({ country: "EG" }))._id;
+  const theme = overrides.themeId
+    ? await ThemeModel.findById(overrides.themeId).lean<ThemeRecord>()
+    : await createTheme({ status: "published" });
+  const status = overrides.status ?? "awaiting_payment";
+  const payment = new WalletPaymentModel();
+  payment.set({
+    userId,
+    themeId: overrides.themeId ?? theme?._id,
+    themeSnapshot: { name: theme?.name ?? "Theme", slug: theme?.slug ?? "theme" },
+    referenceCode: generateReferenceCode(),
+    status,
+    isOpen: status === "awaiting_payment" || status === "submitted",
+    usdPriceCents: 2900,
+    usdDiscountCents: 0,
+    couponId: null,
+    couponCode: null,
+    exchangeRate: 50,
+    amountEgp: 1450,
+    senderPhone: null,
+    transactionId: null,
+    proof: { key: null, contentType: null, sizeBytes: null },
+    submittedAt: null,
+    reviewedAt: null,
+    reviewedByUserId: null,
+    rejectionReason: null,
+    orderId: null,
+    ...overrides,
+  });
+  await payment.save();
+  return payment.toObject();
+}
+
+// Replaces the wallet part of the one settings document. Without overrides: wallet off, rate 50, no accounts.
+export async function setSettings(overrides: Partial<WalletSettingsDTO> = {}): Promise<void> {
+  await SettingsModel.findOneAndUpdate(
+    { _id: "global" },
+    { $set: { walletEnabled: false, usdToEgpRate: 50, walletAccounts: [], ...overrides } },
+    { upsert: true, returnDocument: "after" },
+  );
 }
