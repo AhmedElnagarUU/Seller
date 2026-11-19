@@ -45,13 +45,12 @@ None.
 ## Amount text
 
 Every EGP amount that is shown or written (pages, emails, notification, activity summaries) is `formatPrice(amountEgp * 100, "egp")` (02 §9.8): it already ends with ` EGP` and has thousands separators, e.g. `1,450 EGP` (T-007's notification text does the same). Below, `<amount>` means this text.
-`[PLANNER: 06 §7.4 and 09 §3.1 write "<amountEgp> EGP". Recommended: the formatted text above everywhere, so the notification (T-007), the email, the page and the log agree. Confirm.]`
+`[DECIDED: the formatted text above everywhere.]`
 
 ## Files
 
 ```
 src/shared/lib/money.ts / money.test.ts                    (change) usdCentsToEgpPounds + tests
-src/shared/ui/FileField.tsx                                new UI kit component (below)
 src/shared/ui/ProofImage.tsx                               new UI kit component (below)
 src/shared/layout/AdminShell.tsx                           (change) optional `badges` prop
 src/shared/test/factories.ts                               (change) createWalletPayment, setSettings
@@ -110,7 +109,7 @@ Tests: `2900, 50.5 → 1465`; `2320, 48 → 1114`; `2900, 50 → 1450`; `100, 48
 `settings.model.ts`: collection `settings`, **`_id` is the string `"global"`** (`_id: { type: String, default: "global" }`, `timestamps: true`), fields of 03 §18 exactly: `walletEnabled` (default `false`), `usdToEgpRate` (default `50`, min 1, max 1000, at most 2 decimals), `walletAccounts` (sub-document `{ label, account, instructions }`, `{ _id: false }`; label 2–40, account 2–100, instructions 0–500 default `""`; at most 5 items; default `[]`). `SettingsRecord` via `InferSchemaType`.
 `settings.constants.ts`: `SETTINGS_ID = "global"`, `DEFAULT_USD_TO_EGP_RATE = 50`, `EGP_RATE_MIN = 1`, `EGP_RATE_MAX = 1000`, `MAX_WALLET_ACCOUNTS = 5`, `WALLET_LABEL_MIN = 2`, `WALLET_LABEL_MAX = 40`, `WALLET_ACCOUNT_MIN = 2`, `WALLET_ACCOUNT_MAX = 100`, `WALLET_INSTRUCTIONS_MAX = 500`.
 
-Messages (`SETTINGS_MESSAGES`): `enableNeedsAccount`: `Add at least one wallet account first.` (**exact, 05 §5**). Others — `[PLANNER: not in the docs, confirm]`: `rateRange`: `Enter a rate between 1 and 1000 with up to 2 decimals.`; `labelLength`: `Use 2 to 40 characters.`; `accountLength`: `Use 2 to 100 characters.`; `instructionsLength`: `Use up to 500 characters.`; `tooManyAccounts`: `You can add up to 5 wallet accounts.`; `saved`: `Saved.`
+Messages (`SETTINGS_MESSAGES`): `enableNeedsAccount`: `Add at least one wallet account first.` (**exact, 05 §5**). Others — (confirmed by the owner): `rateRange`: `Enter a rate between 1 and 1000 with up to 2 decimals.`; `labelLength`: `Use 2 to 40 characters.`; `accountLength`: `Use 2 to 100 characters.`; `instructionsLength`: `Use up to 500 characters.`; `tooManyAccounts`: `You can add up to 5 wallet accounts.`; `saved`: `Saved.`
 
 Repository: `findOrCreateSettings()` — `findOneAndUpdate({ _id: "global" }, { $setOnInsert: { walletEnabled: false, usdToEgpRate: 50, walletAccounts: [] } }, { upsert: true, returnDocument: "after" }).lean()`; `saveWalletSettings(fields)` — `findOneAndUpdate({ _id: "global" }, { $set: fields }, { upsert: true, returnDocument: "after", runValidators: true })`.
 
@@ -162,7 +161,7 @@ Messages (`WALLET_MESSAGES`) — **exact text from the docs**:
 | `proofMissing` | `We could not find your screenshot. Please upload it again.` | 06 §7.5 |
 | `alreadyReviewed` | `This payment was already reviewed.` | 06 §7.6 |
 
-Not in the docs — `[PLANNER: confirm]`: `notFound`: `Payment request not found.` (NOT_FOUND: unknown id, or the request of another user); `notChangeable`: `This payment can no longer be changed.` (CONFLICT: proof upload, submit or cancel when the status is not `awaiting_payment`); `transactionIdLength`: `Use up to 100 characters.`; `reasonLength`: `Write between 5 and 500 characters.`; action results `Payment approved.`, `Payment rejected.`; the unique-reference failure is a plain `Error("Could not generate a unique reference code.")`.
+Not in the docs — (confirmed by the owner): `notFound`: `Payment request not found.` (NOT_FOUND: unknown id, or the request of another user); `notChangeable`: `This payment can no longer be changed.` (CONFLICT: proof upload, submit or cancel when the status is not `awaiting_payment`); `transactionIdLength`: `Use up to 100 characters.`; `reasonLength`: `Write between 5 and 500 characters.`; action results `Payment approved.`, `Payment rejected.`; the unique-reference failure is a plain `Error("Could not generate a unique reference code.")`.
 
 ## Reference code (`wallet-payment.reference.ts`) — 06 §7.3
 
@@ -211,7 +210,7 @@ export type WalletOrderInput = { walletPaymentId: string; userId: string; themeI
 export async function recordWalletOrder(input: WalletOrderInput, session: ClientSession): Promise<{ orderId: string }>
 ```
 Inserts an order: `method "wallet"`, `status "paid"`, `currency "egp"`, `totalAmount = amountEgp * 100`, `subtotalAmount = usdCentsToEgpPounds(usdPriceCents, exchangeRate) * 100`, `discountAmount = Math.max(0, subtotalAmount - totalAmount)`, `taxAmount 0`, `refundedAmount 0`, `couponId`, `couponCode`, `walletPaymentId`, `themeSnapshot { name, slug }`, `provider { name: "manual_wallet", orderId: walletPaymentId, checkoutId: null, customerId: null }`, `paidAt`, `refundedAt null`. Then `ownershipService.grantFromOrder({ userId, themeId, orderId }, session)`, `themeService.adjustSalesCount(themeId, 1, session)`, and when `couponId` is set `couponService.recordRedemption(couponId, session)`. No log (the wallet service logs `wallet_payment_approved`). Returns `{ orderId }`.
-`[PLANNER: 03 §19 says order amounts = amountEgp × 100. A coupon is applied to the USD price, and only the final amount is converted. Recommended: totalAmount = amountEgp × 100 and subtotalAmount = the EGP value of the USD price before the coupon (so subtotal − discount = total); alternative: all amounts = amountEgp × 100 with discountAmount 0. Confirm; tests below assume the recommendation. Also confirm paidAt = the approval time.]`
+`[DECIDED: the recommendation (totalAmount = amountEgp × 100; subtotalAmount = EGP value of the USD price before the coupon; subtotal − discount = total); paidAt = the approval time.]`
 In `approveWalletPayment`, `paidAt = now()` (approval time), amounts and snapshot come from the wallet payment.
 
 ## Notification and user helpers added here
@@ -240,7 +239,7 @@ Template files `WalletApprovedEmail.tsx`, `WalletRejectedEmail.tsx`, `AdminWalle
 `PaymentMethodPicker` (server component, props `slug`, `couponCode`, `wallet`): a `Stack` with a `Card` (Heading 3 `Pay by card`, `CardCheckoutForm` of T-012) and, when `wallet` is not `null`, a second `Card` (Heading 3 `Pay with an Egyptian wallet`, `Text` `You pay <formatPrice(amountEgp * 100, "egp")>.`, `WalletStartForm`). The checkout page renders `PaymentMethodPicker` where T-012 rendered `CardCheckoutForm`.
 `WalletStartForm` (`"use client"`, props `slug`, `couponCode`): `useActionState(startWalletPaymentAction, null)`, hidden `slug` and `coupon`, `FormError`, `SubmitButton` `Pay with wallet` / `Starting…`.
 `startWalletPaymentAction(_previous, formData)` (`wallet-payment.actions.ts`): `requireVerifiedUser("/checkout/<slug>")`; schema `{ slug, coupon }` (same rules as T-012); `startWalletPayment({ userId: user.id, themeSlug, couponCode })` in `try/catch`; `redirect("/account/wallet-payments/" + id)` outside the `try`.
-`[PLANNER: headings and texts of the method picker are not in the docs. Confirm.]`
+`[DECIDED by owner: these texts are confirmed.]`
 
 ## Other actions (`wallet-payment.actions.ts`)
 
@@ -255,7 +254,7 @@ Template files `WalletApprovedEmail.tsx`, `WalletRejectedEmail.tsx`, `AdminWalle
 ## Pages and components
 
 New UI kit components (no `className` prop, tokens only):
-- `FileField.tsx` (`"use client"`): props `label`, `name`, `accept?`, `hint?`, `errors?`, `id?`, `onFileChange?: (file: File | null) => void`. A `<label htmlFor>` + `<input type="file">` styled like the other fields; calls `onFileChange(event.target.files?.[0] ?? null)`.
+- `FileField.tsx` already exists (built in T-006): use it as it is. Its file callback prop is `onChange?: (file: File | null) => void` (not `onFileChange`). Do not change it.
 - `ProofImage.tsx`: props `src`, `alt`. `next/image` with `unoptimized`, `width={1200}`, `height={1200}`, classes `h-auto w-full rounded-md border border-border` (a plain `<img>` would fail `pnpm lint`; the signed URL host is not in `remotePatterns`, hence `unoptimized`).
 - `AdminShell.tsx`: new optional prop `badges?: Record<string, number>` (key = menu `href`). A link whose count is greater than 0 shows `<Badge tone="warning">{count}</Badge>` after the label. `app/admin/layout.tsx` calls `countSubmittedWalletPayments()` and passes `{ "/admin/wallet-payments": count }`.
 
@@ -281,10 +280,10 @@ Client components:
 - `CopyReferenceButton` (props `referenceCode`): `Button variant="secondary" size="sm"` `Copy`; `onClick` runs `navigator.clipboard.writeText(referenceCode)` inside `try/catch` and then shows `Copied` (state).
 - `WalletCancelButton` (props `walletPaymentId`): `useActionState(cancelWalletPaymentAction, null)`, hidden `id`, `FormError`, `SubmitButton variant="ghost"` `Cancel payment` / `Cancelling…`.
 - `useWalletProofUpload.ts` (hook, props `walletPaymentId`): state `status: "idle" | "uploading" | "uploaded" | "failed"`, `progress` (0–100), `errorMessage`, `proofKey`; `start(file)`: (1) client check: type in `IMAGE_CONTENT_TYPES` and size 1 – 5 242 880, else `failed` with `Please upload a JPG, PNG or WebP image up to 5 MB.`; (2) `createProofUploadUrlAction({ walletPaymentId, contentType: file.type, sizeBytes: file.size })`, `!ok` → `failed` with `result.error`; (3) `uploadFile(result.data, file, setProgress)`, a thrown error → `failed` with `The upload failed. Please check your connection and try again.`; (4) `uploaded`, `proofKey = result.data.key`.
-- `WalletProofForm` (props `walletPaymentId`): uses the hook; `FileField` `Screenshot of the transfer` (`accept="image/jpeg,image/png,image/webp"`, `onFileChange` → `start`), `Text` `Uploading… <progress>%` while uploading, `Text tone="success"` `Screenshot uploaded.` when uploaded, `Text tone="danger"` with the error; controlled `TextField` `Phone number you paid from` (`type="tel"`) and `TextField` `Transaction ID (optional)`; a `Button type="submit"` `Send payment details` (pending: `Sending…`), `disabled` until `uploaded`. `onSubmit` → `event.preventDefault()`, `startTransition` (React `useTransition`) around `submitWalletProofAction({ walletPaymentId, senderPhone, transactionId, proofKey })`; a failure shows `FormError` (and `fieldErrors` under the phone field); a success calls `router.refresh()`.
+- `WalletProofForm` (props `walletPaymentId`): uses the hook; `FileField` `Screenshot of the transfer` (`accept="image/jpeg,image/png,image/webp"`, `onChange` → `start`), `Text` `Uploading… <progress>%` while uploading, `Text tone="success"` `Screenshot uploaded.` when uploaded, `Text tone="danger"` with the error; controlled `TextField` `Phone number you paid from` (`type="tel"`) and `TextField` `Transaction ID (optional)`; a `Button type="submit"` `Send payment details` (pending: `Sending…`), `disabled` until `uploaded`. `onSubmit` → `event.preventDefault()`, `startTransition` (React `useTransition`) around `submitWalletProofAction({ walletPaymentId, senderPhone, transactionId, proofKey })`; a failure shows `FormError` (and `fieldErrors` under the phone field); a success calls `router.refresh()`.
 - `WalletReviewPanel` (`"use client"`, props `payment: WalletPaymentAdminDTO`): details as `Text` rows (`Customer`, `Theme`, `Amount`, `Reference`, `Phone`, `Transaction ID`, `Submitted`); `ProofImage` with `alt="Transfer screenshot"` when `proofUrl` is set; for status `submitted` only: `Alert tone="warning"` `Check that the money really arrived in your wallet (amount and reference) before you approve.`, an approve form (`useActionState(approveWalletPaymentAction, null)`, hidden `id`, `SubmitButton` `Approve` / `Approving…`) and a reject form (`rejectWalletPaymentAction`, hidden `id`, `TextAreaField` `Reason for the customer` name `reason`, `SubmitButton variant="danger"` `Reject` / `Rejecting…`); each shows `FormError`, and `Alert tone="success"` with the message. Other statuses: `Text` with the status label, the review date and, when rejected, the reason.
 
-`[PLANNER: labels, headings, hints and empty states above are not in the docs, except those quoted from 06 §7.4 / 05 §5. Confirm all others.]`
+`[DECIDED by owner: all texts above are confirmed.]`
 
 ## Test factories
 
