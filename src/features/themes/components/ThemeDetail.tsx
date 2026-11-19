@@ -9,11 +9,14 @@ import { Heading } from "@/shared/ui/Heading";
 import { MarkdownText } from "@/shared/ui/MarkdownText";
 import { Text } from "@/shared/ui/Text";
 import { TextLink } from "@/shared/ui/TextLink";
+import { FavoriteButton } from "@/features/favorites/components/FavoriteButton";
 import { ThemeGallery } from "@/features/themes/components/ThemeGallery";
 import type { ThemeDetailDTO } from "@/features/themes/theme.types";
 
 type ThemeDetailProps = {
   theme: ThemeDetailDTO;
+  isLoggedIn: boolean;
+  isFavorite: boolean;
 };
 
 function describeVersion(theme: ThemeDetailDTO): string | null {
@@ -21,7 +24,7 @@ function describeVersion(theme: ThemeDetailDTO): string | null {
   return `Version ${theme.latestVersion} · Updated ${formatDate(theme.latestVersionReleasedAt)}`;
 }
 
-export function ThemeDetail({ theme }: ThemeDetailProps) {
+export function ThemeDetail({ theme, isLoggedIn, isFavorite }: ThemeDetailProps) {
   const versionText = describeVersion(theme);
 
   return (
@@ -52,6 +55,7 @@ export function ThemeDetail({ theme }: ThemeDetailProps) {
                 Live demo
               </ButtonAnchor>
             ) : null}
+            <FavoriteButton themeId={theme.id} themeSlug={theme.slug} isFavorite={isFavorite} isLoggedIn={isLoggedIn} />
           </Inline>
         </Stack>
       </Grid>

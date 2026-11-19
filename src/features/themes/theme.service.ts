@@ -238,6 +238,23 @@ export async function getPublishedThemeBySlug(slug: string): Promise<ThemeDetail
   return category ? toThemeDetailDTO(theme, category) : null;
 }
 
+// The card of a published theme, or null (draft, unpublished, unknown or invalid id).
+export async function getPublishedThemeCardById(id: string): Promise<ThemeCardDTO | null> {
+  const theme = await themeRepository.findThemeById(id);
+  if (!theme || theme.status !== "published") return null;
+  const [card] = await toCards([theme]);
+  return card ?? null;
+}
+
+// The cards of the published themes among `ids`, in the order of `ids`. Other ids are skipped.
+export async function listPublishedThemeCardsByIds(ids: string[]): Promise<ThemeCardDTO[]> {
+  if (ids.length === 0) return [];
+  const themes = await themeRepository.findPublishedThemesByIds(ids);
+  const themesById = new Map(themes.map((theme) => [theme._id.toString(), theme]));
+  const ordered = ids.flatMap((id) => themesById.get(id) ?? []);
+  return toCards(ordered);
+}
+
 async function findHomeSection(sort: ThemeSort, extraQuery: ThemeQuery): Promise<ThemeCardDTO[]> {
   const themes = await themeRepository.findThemes({ ...extraQuery, status: "published" }, sort, 1, HOME_SECTION_SIZE);
   return toCards(themes);

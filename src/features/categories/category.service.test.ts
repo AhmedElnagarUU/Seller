@@ -9,7 +9,8 @@ import {
   listCategoriesWithPublishedCounts,
   updateCategory,
 } from "@/features/categories/category.service";
-import { createCategory as createCategoryRow, createTheme } from "@/shared/test/factories";
+import { FavoriteModel } from "@/features/favorites/favorite.model";
+import { createCategory as createCategoryRow, createFavorite, createTheme, createUser } from "@/shared/test/factories";
 
 const BLOG_INPUT = { name: "Blog", slug: "blog", description: null, sortOrder: 0 };
 
@@ -123,6 +124,30 @@ describe("deleteCategory", () => {
     await deleteCategory(category._id.toString());
 
     expect(await CategoryModel.countDocuments()).toBe(0);
+  });
+
+  it("deletes the favorites of the deleted category only", async () => {
+    const user = await createUser();
+    const userId = user._id.toString();
+    const deleted = await createCategoryRow();
+    const kept = await createCategoryRow();
+    const busy = await createCategoryRow();
+    const theme = await createTheme({ categoryId: kept._id, status: "published" });
+    await createTheme({ categoryId: busy._id, status: "published" });
+    await createFavorite(userId, "category", deleted._id.toString());
+    await createFavorite(userId, "category", kept._id.toString());
+    await createFavorite(userId, "category", busy._id.toString());
+    await createFavorite(userId, "theme", theme._id.toString());
+
+    await expect(deleteCategory(busy._id.toString())).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await FavoriteModel.countDocuments()).toBe(4);
+
+    await deleteCategory(deleted._id.toString());
+
+    expect(await FavoriteModel.countDocuments({ targetId: deleted._id })).toBe(0);
+    expect(await FavoriteModel.countDocuments({ targetType: "category", targetId: kept._id })).toBe(1);
+    expect(await FavoriteModel.countDocuments({ targetType: "theme", targetId: theme._id })).toBe(1);
+    expect(await FavoriteModel.countDocuments()).toBe(3);
   });
 });
 

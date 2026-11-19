@@ -5,7 +5,10 @@ import { Stack } from "@/shared/layout/Stack";
 import { Heading } from "@/shared/ui/Heading";
 import { Pagination } from "@/shared/ui/Pagination";
 import { Text } from "@/shared/ui/Text";
+import { getCurrentUser } from "@/features/auth/session";
 import { getCategoryBySlug } from "@/features/categories/category.service";
+import { FollowCategoryButton } from "@/features/favorites/components/FollowCategoryButton";
+import { isCategoryFollowed } from "@/features/favorites/favorite.service";
 import { ThemeGrid } from "@/features/themes/components/ThemeGrid";
 import { themeSearchParamsSchema } from "@/features/themes/theme.schemas";
 import { listPublishedThemes } from "@/features/themes/theme.service";
@@ -26,6 +29,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const { page } = themeSearchParamsSchema.parse(await searchParams);
   const category = await getCategoryBySlug(slug);
   if (!category) notFound();
+  const user = await getCurrentUser();
+  const isFollowing = user ? await isCategoryFollowed(user.id, category.id) : false;
   const result = await listPublishedThemes({ categorySlug: slug, page });
 
   return (
@@ -34,6 +39,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <Stack>
           <Heading level={1}>{category.name}</Heading>
           {category.description ? <Text tone="muted">{category.description}</Text> : null}
+          <FollowCategoryButton
+            categoryId={category.id}
+            categorySlug={category.slug}
+            isFollowing={isFollowing}
+            isLoggedIn={user !== null}
+          />
         </Stack>
         {result.items.length > 0 ? <ThemeGrid themes={result.items} /> : <Text>No themes in this category yet.</Text>}
         <Pagination

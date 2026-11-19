@@ -15,6 +15,7 @@ import type {
   CategoryDTO,
   CategoryWithCountDTO,
 } from "@/features/categories/category.types";
+import { deleteFavoritesForCategory } from "@/features/favorites/favorite.service";
 import { countPublishedThemesInCategory, countThemesInCategory } from "@/features/themes/theme.service";
 
 async function assertNameIsFree(name: string, ownId?: string): Promise<void> {
@@ -59,6 +60,7 @@ export async function deleteCategory(id: string): Promise<void> {
     throw new AppError("CONFLICT", "This category still has themes. Move them to another category first.");
   }
   await categoryRepository.deleteCategoryById(id);
+  await deleteFavoritesForCategory(id);
 }
 
 // All categories for the admin list, with the number of themes in any status.

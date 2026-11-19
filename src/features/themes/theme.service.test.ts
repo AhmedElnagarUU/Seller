@@ -5,12 +5,14 @@ import {
   adjustSalesCount,
   createTheme,
   getHomePageData,
+  getPublishedThemeCardById,
   getPublishedThemeBySlug,
   getThemeForAdmin,
   getThemeForNotification,
   getThemeForPurchase,
   getThemeForPurchaseById,
   incrementDownloadCount,
+  listPublishedThemeCardsByIds,
   listPublishedThemes,
   listThemeSummariesByIds,
   listThemesForAdmin,
@@ -594,5 +596,38 @@ describe("getThemeForNotification", () => {
     });
     expect(await getThemeForNotification(new Types.ObjectId().toString())).toBeNull();
     expect(await getThemeForNotification("x")).toBeNull();
+  });
+});
+
+describe("getPublishedThemeCardById", () => {
+  it("returns the card for a published theme and null for draft, unpublished, unknown and invalid ids", async () => {
+    const category = await createCategory({ name: "Blog", slug: "blog" });
+    const published = await createThemeRow({ name: "Aurora Blog", categoryId: category._id, status: "published" });
+    const draft = await createThemeRow({ status: "draft" });
+    const unpublished = await createThemeRow({ status: "unpublished" });
+
+    const card = await getPublishedThemeCardById(published._id.toString());
+
+    expect(card?.id).toBe(published._id.toString());
+    expect(card?.name).toBe("Aurora Blog");
+    expect(card?.categoryName).toBe("Blog");
+    expect(await getPublishedThemeCardById(draft._id.toString())).toBeNull();
+    expect(await getPublishedThemeCardById(unpublished._id.toString())).toBeNull();
+    expect(await getPublishedThemeCardById(new Types.ObjectId().toString())).toBeNull();
+    expect(await getPublishedThemeCardById("not-an-id")).toBeNull();
+  });
+});
+
+describe("listPublishedThemeCardsByIds", () => {
+  it("keeps the order of the ids given and skips non-published and invalid ids", async () => {
+    const a = await createThemeRow({ status: "published" });
+    await createThemeRow({ status: "published" });
+    const c = await createThemeRow({ status: "published" });
+    const draft = await createThemeRow({ status: "draft" });
+
+    const cards = await listPublishedThemeCardsByIds([c._id.toString(), a._id.toString(), draft._id.toString(), "x"]);
+
+    expect(cards.map((card) => card.id)).toEqual([c._id.toString(), a._id.toString()]);
+    expect(await listPublishedThemeCardsByIds([])).toEqual([]);
   });
 });

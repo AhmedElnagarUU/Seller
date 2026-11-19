@@ -70,6 +70,14 @@ export async function findThemesByIds(ids: string[]): Promise<ThemeRecord[]> {
   return ThemeModel.find({ _id: { $in: objectIds } }).lean<ThemeRecord[]>();
 }
 
+// Finds the published themes among these ids. Invalid and unknown ids are ignored; the order is not defined.
+export async function findPublishedThemesByIds(ids: string[]): Promise<ThemeRecord[]> {
+  const objectIds = ids.flatMap((id) => parseObjectId(id) ?? []);
+  if (objectIds.length === 0) return [];
+  await connectDB();
+  return ThemeModel.find({ _id: { $in: objectIds }, status: "published" }).lean<ThemeRecord[]>();
+}
+
 // Finds the themes that have a payment provider product id, any status, sorted by name.
 export async function findThemesWithProduct(): Promise<ThemeRecord[]> {
   await connectDB();
