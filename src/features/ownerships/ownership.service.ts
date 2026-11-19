@@ -133,3 +133,14 @@ export async function listOwnedThemes(userId: string): Promise<OwnedThemeDTO[]> 
   );
   return owned.sort((first, second) => first.theme.name.localeCompare(second.theme.name, "en"));
 }
+
+// The next active owners of a theme after `afterId` (all when null), `_id` ascending.
+// `rowId` is the ownership `_id`: the cursor of a notification job.
+export async function listActiveOwnerRowsAfter(input: {
+  themeId: string;
+  afterId: string | null;
+  limit: number;
+}): Promise<{ rowId: string; userId: string }[]> {
+  const rows = await ownershipRepository.findActiveOwnerRowsAfter(input);
+  return rows.map((row) => ({ rowId: row._id.toString(), userId: row.userId.toString() }));
+}

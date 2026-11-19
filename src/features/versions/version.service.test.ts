@@ -12,6 +12,7 @@ import {
   createZipUploadUrl,
   getVersionForAdmin,
   getVersionForDownload,
+  getVersionForNotification,
   listVersionsForAdmin,
   listVersionsForTheme,
   updateVersionChanges,
@@ -436,5 +437,31 @@ describe("getVersionForAdmin", () => {
 
     expect((await getVersionForAdmin(theme._id.toString(), row._id.toString()))?.id).toBe(row._id.toString());
     expect(await getVersionForAdmin(otherTheme._id.toString(), row._id.toString())).toBeNull();
+  });
+});
+
+describe("getVersionForNotification", () => {
+  it("returns the version number, the release date and the changes; null for unknown and invalid ids", async () => {
+    const theme = await createTheme();
+    const releasedAt = new Date("2026-10-27T10:00:00Z");
+    const version = await createVersionRow(theme._id.toString(), {
+      version: "1.1.0",
+      releasedAt,
+      changes: [
+        { type: "fixed", text: "Fixed the footer" },
+        { type: "new", text: "Added dark mode" },
+      ],
+    });
+
+    expect(await getVersionForNotification(version._id.toString())).toEqual({
+      version: "1.1.0",
+      releasedAt,
+      changes: [
+        { type: "fixed", text: "Fixed the footer" },
+        { type: "new", text: "Added dark mode" },
+      ],
+    });
+    expect(await getVersionForNotification(new Types.ObjectId().toString())).toBeNull();
+    expect(await getVersionForNotification("x")).toBeNull();
   });
 });

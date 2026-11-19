@@ -263,3 +263,18 @@ export async function countThemesInCategory(categoryId: string): Promise<number>
 export async function countPublishedThemesInCategory(categoryId: string): Promise<number> {
   return themeRepository.countThemes({ categoryId, status: "published" });
 }
+
+// The few theme fields that notification jobs need, any status. null for an invalid or unknown id.
+export async function getThemeForNotification(
+  themeId: string,
+): Promise<{ id: string; name: string; slug: string; tagline: string; categoryId: string } | null> {
+  const theme = await themeRepository.findThemeById(themeId);
+  if (!theme) return null;
+  return {
+    id: theme._id.toString(),
+    name: theme.name,
+    slug: theme.slug,
+    tagline: theme.tagline,
+    categoryId: theme.categoryId.toString(),
+  };
+}

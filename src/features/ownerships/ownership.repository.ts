@@ -1,4 +1,4 @@
-import type { ClientSession } from "mongoose";
+import type { ClientSession, Types } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
 import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import type { OwnershipSource, RevokeReason } from "@/features/ownerships/ownership.constants";
@@ -125,4 +125,28 @@ export async function revokeOwnershipById(id: string, fields: RevokeFields, sess
     { session },
   );
   return result.modifiedCount === 1;
+}
+
+// The next active ownerships of a theme, `_id` ascending, after `afterId` (all when null). Only `_id` and `userId`.
+// An invalid theme id or cursor gives no rows.
+export async function findActiveOwnerRowsAfter(input: {
+  themeId: string;
+  afterId: string | null;
+  limit: number;
+}): Promise<{ _id: Types.ObjectId; userId: Types.ObjectId }[]> {
+  const themeObjectId = parseObjectId(input.themeId);
+  if (!themeObjectId) return [];
+  const afterObjectId = input.afterId === null ? null : parseObjectId(input.afterId);
+  if (input.afterId !== null && !afterObjectId) return [];
+  await connectDB();
+  const filter = {
+    themeId: themeObjectId,
+    status: "active" as const,
+    ...(afterObjectId ? { _id: { $gt: afterObjectId } } : {}),
+  };
+  return OwnershipModel.find(filter)
+    .sort({ _id: 1 })
+    .limit(input.limit)
+    .select({ userId: 1 })
+    .lean<{ _id: Types.ObjectId; userId: Types.ObjectId }[]>();
 }

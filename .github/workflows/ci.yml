@@ -22,6 +22,7 @@ jobs:
       ENABLE_DEV_PAGES: "true"
       APP_ENV: ci
       PAYMENT_PROVIDER: fake
+      CRON_SECRET: dev-cron-secret-change-me-dev-cron-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

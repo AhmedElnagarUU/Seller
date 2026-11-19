@@ -3,13 +3,15 @@ import { env } from "@/shared/config/env";
 
 type EmailLayoutProps = {
   preview: string;
+  // Only for the emails a customer can turn off (#7 - #10): why the customer gets this email.
+  reason?: string;
   children: React.ReactNode;
 };
 
 // Email clients cannot read tokens.css, so colors are written here (the one allowed exception, docs/09 section 2).
 const COLORS = { background: "#f4f4f5", card: "#ffffff", text: "#18181b", muted: "#71717a" };
 
-export function EmailLayout({ preview, children }: EmailLayoutProps) {
+export function EmailLayout({ preview, reason, children }: EmailLayoutProps) {
   return (
     <Html lang="en">
       <Head />
@@ -39,6 +41,11 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
           <Text style={{ color: COLORS.muted, fontSize: "13px", margin: 0 }}>
             {`Questions? Reply to this email or write to ${env.SUPPORT_EMAIL}.`}
           </Text>
+          {reason ? (
+            <Text style={{ color: COLORS.muted, fontSize: "13px", margin: "8px 0 0" }}>
+              {`You get this email because ${reason}. Change your email settings: ${env.APP_URL}/account/settings`}
+            </Text>
+          ) : null}
         </Container>
       </Body>
     </Html>

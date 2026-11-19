@@ -14,3 +14,15 @@ export type UserSummary = {
   email: string;
   country: string | null;
 };
+
+// What a notification job needs to know about a customer: the address and the four email switches.
+export type NotificationUserDTO = {
+  id: string;
+  name: string;
+  email: string;
+  disabled: boolean;
+  emailOwnedThemeUpdates: boolean;
+  emailFavoriteThemeUpdates: boolean;
+  emailFollowedCategoryThemes: boolean;
+  emailAnnouncements: boolean;
+};

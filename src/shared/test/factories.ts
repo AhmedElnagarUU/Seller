@@ -2,6 +2,9 @@ import { Types } from "mongoose";
 import { ActivityLogModel, type ActivityLogRecord } from "@/features/activity/activity-log.model";
 import { CategoryModel, type CategoryRecord } from "@/features/categories/category.model";
 import { CouponModel, type CouponRecord } from "@/features/coupons/coupon.model";
+import { FavoriteModel, type FavoriteRecord } from "@/features/favorites/favorite.model";
+import type { FavoriteTargetType } from "@/features/favorites/favorite.constants";
+import { NotificationJobModel, type NotificationJobRecord } from "@/features/notifications/notification-job.model";
 import { OrderModel, type OrderRecord } from "@/features/orders/order.model";
 import { OwnershipModel, type OwnershipRecord } from "@/features/ownerships/ownership.model";
 import { SettingsModel } from "@/features/settings/settings.model";
@@ -252,4 +255,118 @@ export async function setSettings(overrides: Partial<WalletSettingsDTO> = {}): P
     { $set: { walletEnabled: false, usdToEgpRate: 50, walletAccounts: [], ...overrides } },
     { upsert: true, returnDocument: "after" },
   );
+}
+
+// One favorite row: a customer favorites a theme or follows a category.
+export async function createFavorite(
+  userId: string,
+  targetType: FavoriteTargetType,
+  targetId: string,
+): Promise<FavoriteRecord> {
+  const favorite = await FavoriteModel.create({
+    userId: new Types.ObjectId(userId),
+    targetType,
+    targetId: new Types.ObjectId(targetId),
+  });
+  return favorite.toObject();
+}
+
+// `count` verified customers who each own the theme (an active "purchase" ownership). Fast enough for 250 users.
+export async function createOwnersForTheme(themeId: string, count: number): Promise<UserRecord[]> {
+  const first = nextNumber();
+  counter += count - 1;
+  const users = await UserModel.insertMany(
+    Array.from({ length: count }, (_, index) => ({
+      name: `Owner ${first + index}`,
+      email: `owner-${first + index}@example.com`,
+      emailVerified: true,
+    })),
+  );
+  await OwnershipModel.insertMany(
+    users.map((user) => ({
+      userId: user._id,
+      themeId: new Types.ObjectId(themeId),
+      status: "active",
+      source: "purchase",
+      orderId: new Types.ObjectId(),
+      grantedByUserId: null,
+      grantNote: null,
+      licenseType: "standard",
+      revokedAt: null,
+      revokedReason: null,
+      revokedByUserId: null,
+      revokeNote: null,
+    })),
+  );
+  return users.map((user) => user.toObject());
+}
+
+type NotificationJobOverrides = Partial<Omit<NotificationJobRecord, "_id" | "announcement">> & {
+  announcement?: Partial<NotificationJobRecord["announcement"]>;
+};
+
+const DEFAULT_ANNOUNCEMENT: NotificationJobRecord["announcement"] = {
+  title: "Big sale",
+  body: "Everything is cheaper this week.",
+  link: null,
+  sendEmail: true,
+  audience: "all_customers",
+  audienceThemeId: null,
+  audienceUserId: null,
+};
+
+const EMPTY_ANNOUNCEMENT: NotificationJobRecord["announcement"] = {
+  title: null,
+  body: null,
+  link: null,
+  sendEmail: null,
+  audience: null,
+  audienceThemeId: null,
+  audienceUserId: null,
+};
+
+function firstStageOf(kind: NotificationJobRecord["kind"], audience: string | null | undefined) {
+  if (kind === "version_released") return "theme_owners";
+  if (kind === "theme_published") return "category_followers";
+  return audience === "theme_owners" || audience === "one_customer" ? audience : "all_customers";
+}
+
+// A pending notification job. `kind` defaults to "version_released". The theme and the version are created when the
+// kind needs them and they are not given (a theme_published job gets the category of its theme).
+export async function createNotificationJob(overrides: NotificationJobOverrides = {}): Promise<NotificationJobRecord> {
+  const kind = overrides.kind ?? "version_released";
+  const announcement = {
+    ...(kind === "announcement" ? DEFAULT_ANNOUNCEMENT : EMPTY_ANNOUNCEMENT),
+    ...overrides.announcement,
+  };
+  const theme = kind !== "announcement" && !overrides.themeId ? await createTheme({ status: "published" }) : null;
+  const themeId = overrides.themeId ?? theme?._id ?? null;
+  const versionId =
+    overrides.versionId ??
+    (kind === "version_released" && themeId ? (await createVersion(themeId.toString()))._id : null);
+  const themeRow =
+    themeId && kind === "theme_published" ? await ThemeModel.findById(themeId).lean<ThemeRecord>() : null;
+  const categoryId = kind === "theme_published" ? (overrides.categoryId ?? themeRow?.categoryId ?? null) : null;
+  const job = new NotificationJobModel();
+  job.set({
+    status: "pending",
+    cursor: null,
+    notifiedCount: 0,
+    emailedCount: 0,
+    attempts: 0,
+    error: null,
+    startedAt: null,
+    finishedAt: null,
+    lockedUntil: null,
+    createdByUserId: overrides.createdByUserId ?? (await createUser())._id,
+    ...overrides,
+    kind,
+    stage: overrides.stage ?? firstStageOf(kind, announcement.audience),
+    themeId,
+    versionId,
+    categoryId,
+    announcement,
+  });
+  await job.save();
+  return job.toObject();
 }

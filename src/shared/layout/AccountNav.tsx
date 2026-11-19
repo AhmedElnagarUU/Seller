@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Badge } from "@/shared/ui/Badge";
 import { TextLink } from "@/shared/ui/TextLink";
 
 const ACCOUNT_LINKS = [
@@ -15,15 +16,18 @@ const ACCOUNT_LINKS = [
   { href: "/account/settings", label: "Settings" },
 ];
 
+const NOTIFICATIONS_HREF = "/account/notifications";
+
 const LINK_CLASSES =
   "rounded-sm whitespace-nowrap hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 type AccountNavProps = {
   isAdmin: boolean;
+  unreadNotificationCount?: number;
 };
 
 // The menu of the account pages. The current page is highlighted.
-export function AccountNav({ isAdmin }: AccountNavProps) {
+export function AccountNav({ isAdmin, unreadNotificationCount = 0 }: AccountNavProps) {
   const pathname = usePathname();
 
   return (
@@ -41,6 +45,12 @@ export function AccountNav({ isAdmin }: AccountNavProps) {
             className={clsx(LINK_CLASSES, isCurrent ? "text-primary font-bold" : "text-text-muted hover:text-text")}
           >
             {link.label}
+            {link.href === NOTIFICATIONS_HREF && unreadNotificationCount > 0 ? (
+              <>
+                {" "}
+                <Badge tone="primary">{unreadNotificationCount}</Badge>
+              </>
+            ) : null}
           </Link>
         );
       })}

@@ -37,6 +37,7 @@ export default defineConfig({
       POLAR_SERVER: "sandbox",
       POLAR_ACCESS_TOKEN: "polar_oat_test_token",
       POLAR_WEBHOOK_SECRET: "whsec_test_secret_for_unit_tests",
+      CRON_SECRET: "dev-cron-secret-change-me-dev-cron-secret",
     },
     coverage: {
       provider: "v8",

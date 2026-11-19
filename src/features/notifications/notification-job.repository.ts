@@ -1,11 +1,15 @@
 import type { ClientSession, Types } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
 import { parseObjectId } from "@/shared/db/ids";
-import type {
-  AnnouncementAudience,
-  NotificationJobKind,
-  NotificationJobStage,
-  NotificationJobStatus,
+import { now } from "@/shared/lib/clock";
+import {
+  JOB_ERROR_MAX,
+  JOB_LOCK_SECONDS,
+  MAX_JOB_ATTEMPTS,
+  type AnnouncementAudience,
+  type NotificationJobKind,
+  type NotificationJobStage,
+  type NotificationJobStatus,
 } from "@/features/notifications/notification.constants";
 import { NotificationJobModel, type NotificationJobRecord } from "@/features/notifications/notification-job.model";
 
@@ -56,4 +60,74 @@ export async function findNotificationJobsByIds(ids: string[]): Promise<Notifica
   const objectIds = ids.map((id) => parseObjectId(id)).filter((objectId) => objectId !== null);
   await connectDB();
   return NotificationJobModel.find({ _id: { $in: objectIds } }).lean<NotificationJobRecord[]>();
+}
+
+const MILLISECONDS_PER_SECOND = 1000;
+
+// Takes the oldest open job that no other run works on (docs/09-emails.md section 5.3). One atomic update:
+// the job is locked for JOB_LOCK_SECONDS and set to "running". null when there is none.
+export async function claimNextJob(): Promise<NotificationJobRecord | null> {
+  await connectDB();
+  const claimed = await NotificationJobModel.findOneAndUpdate(
+    {
+      status: { $in: ["pending", "running"] },
+      $or: [{ lockedUntil: null }, { lockedUntil: { $lt: now() } }],
+    },
+    {
+      $set: { status: "running", lockedUntil: new Date(now().getTime() + JOB_LOCK_SECONDS * MILLISECONDS_PER_SECOND) },
+    },
+    { sort: { createdAt: 1 }, returnDocument: "after" },
+  ).lean<NotificationJobRecord>();
+  if (!claimed) return null;
+  if (claimed.startedAt) return claimed;
+  const startedAt = now();
+  await NotificationJobModel.updateOne({ _id: claimed._id }, { $set: { startedAt } });
+  return { ...claimed, startedAt };
+}
+
+// The batch worked: moves the cursor, adds to the counters and releases the lock.
+export async function saveBatchProgress(
+  jobId: Types.ObjectId,
+  progress: { cursor: Types.ObjectId; notifiedDelta: number; emailedDelta: number },
+): Promise<void> {
+  await connectDB();
+  await NotificationJobModel.updateOne(
+    { _id: jobId },
+    {
+      $set: { cursor: progress.cursor, lockedUntil: null },
+      $inc: { notifiedCount: progress.notifiedDelta, emailedCount: progress.emailedDelta },
+    },
+  );
+}
+
+// The stage has no more rows: starts the next stage from its beginning and releases the lock.
+export async function moveJobToStage(jobId: Types.ObjectId, stage: NotificationJobStage): Promise<void> {
+  await connectDB();
+  await NotificationJobModel.updateOne({ _id: jobId }, { $set: { stage, cursor: null, lockedUntil: null } });
+}
+
+export async function markJobDone(jobId: Types.ObjectId): Promise<void> {
+  await connectDB();
+  await NotificationJobModel.updateOne(
+    { _id: jobId },
+    { $set: { status: "done", finishedAt: now(), lockedUntil: null } },
+  );
+}
+
+// Releases the lock without counting an attempt (a rate limit).
+export async function releaseJobLock(jobId: Types.ObjectId): Promise<void> {
+  await connectDB();
+  await NotificationJobModel.updateOne({ _id: jobId }, { $set: { lockedUntil: null } });
+}
+
+// A batch failed: adds an attempt, stores the message and releases the lock. At MAX_JOB_ATTEMPTS the job is "failed".
+export async function recordJobFailure(jobId: Types.ObjectId, message: string): Promise<void> {
+  await connectDB();
+  const updated = await NotificationJobModel.findOneAndUpdate(
+    { _id: jobId },
+    { $inc: { attempts: 1 }, $set: { error: message.slice(0, JOB_ERROR_MAX), lockedUntil: null } },
+    { returnDocument: "after" },
+  ).lean<NotificationJobRecord>();
+  if (!updated || updated.attempts < MAX_JOB_ATTEMPTS) return;
+  await NotificationJobModel.updateOne({ _id: jobId }, { $set: { status: "failed", finishedAt: now() } });
 }

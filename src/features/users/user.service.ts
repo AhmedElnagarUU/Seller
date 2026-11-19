@@ -2,7 +2,7 @@ import { env } from "@/shared/config/env";
 import { AppError } from "@/shared/errors";
 import { isCountryCode } from "@/shared/lib/countries";
 import * as userRepository from "@/features/users/user.repository";
-import type { UserSummary } from "@/features/users/user.types";
+import type { NotificationUserDTO, UserSummary } from "@/features/users/user.types";
 
 // Saves the user's country. Throws INVALID for an unknown code.
 export async function setUserCountry(userId: string, country: string): Promise<void> {
@@ -48,4 +48,29 @@ export async function getUserSummaries(userIds: string[]): Promise<UserSummary[]
     email: user.email,
     country: user.country ?? null,
   }));
+}
+
+// The notification data of the users that exist. Invalid and unknown ids are skipped. One query.
+export async function getUsersForNotification(userIds: string[]): Promise<NotificationUserDTO[]> {
+  const users = await userRepository.findNotificationUsersByIds(userIds);
+  return users.map((user) => ({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    disabled: user.disabled,
+    emailOwnedThemeUpdates: user.emailOwnedThemeUpdates,
+    emailFavoriteThemeUpdates: user.emailFavoriteThemeUpdates,
+    emailFollowedCategoryThemes: user.emailFollowedCategoryThemes,
+    emailAnnouncements: user.emailAnnouncements,
+  }));
+}
+
+// The next users that are not disabled after `afterId` (all when null), `_id` ascending.
+// `rowId` and `userId` are both the user `_id`.
+export async function listCustomerRowsAfter(input: {
+  afterId: string | null;
+  limit: number;
+}): Promise<{ rowId: string; userId: string }[]> {
+  const rows = await userRepository.findEnabledUserIdsAfter(input);
+  return rows.map((row) => ({ rowId: row._id.toString(), userId: row._id.toString() }));
 }

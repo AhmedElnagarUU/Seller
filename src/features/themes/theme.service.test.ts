@@ -7,6 +7,7 @@ import {
   getHomePageData,
   getPublishedThemeBySlug,
   getThemeForAdmin,
+  getThemeForNotification,
   getThemeForPurchase,
   getThemeForPurchaseById,
   incrementDownloadCount,
@@ -573,5 +574,25 @@ describe("adjustSalesCount", () => {
 
     await withTransaction((session) => adjustSalesCount(themeId, -1, session));
     expect((await ThemeModel.findById(themeId).lean())?.stats.salesCount).toBe(1);
+  });
+});
+
+describe("getThemeForNotification", () => {
+  it("returns the name, slug, tagline and category of a theme in any status; null for unknown and invalid ids", async () => {
+    const theme = await createThemeRow({
+      name: "Aurora Blog",
+      slug: "aurora-blog",
+      tagline: "A calm theme for writers",
+    });
+
+    expect(await getThemeForNotification(theme._id.toString())).toEqual({
+      id: theme._id.toString(),
+      name: "Aurora Blog",
+      slug: "aurora-blog",
+      tagline: "A calm theme for writers",
+      categoryId: theme.categoryId.toString(),
+    });
+    expect(await getThemeForNotification(new Types.ObjectId().toString())).toBeNull();
+    expect(await getThemeForNotification("x")).toBeNull();
   });
 });

@@ -35,6 +35,7 @@ const envSchema = z.object({
   POLAR_SERVER: z.enum(["sandbox", "production"]).default("sandbox"),
   POLAR_ACCESS_TOKEN: z.string().optional(),
   POLAR_WEBHOOK_SECRET: z.string().optional(),
+  CRON_SECRET: z.string().min(32),
 });
 
 const envSchemaWithRules = envSchema.superRefine((value, context) => {

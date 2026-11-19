@@ -48,3 +48,18 @@ export const NOTIFICATION_JOB_STATUS_LABELS: Record<NotificationJobStatus, strin
   done: "Done",
   failed: "Failed",
 };
+
+// Processing of notification jobs (docs/09-emails.md section 5.2).
+// Resend's batch maximum.
+export const JOB_BATCH_SIZE = 100;
+export const MAX_BATCHES_PER_RUN = 10;
+export const JOB_LOCK_SECONDS = 120;
+export const MAX_JOB_ATTEMPTS = 5;
+export const NOTIFICATIONS_PER_PAGE = 20;
+
+// The stages of each job kind, in order (docs/03-data-model.md section 13).
+// An announcement has the single stage given by its audience.
+export const JOB_STAGES_BY_KIND: Record<"version_released" | "theme_published", readonly NotificationJobStage[]> = {
+  version_released: ["theme_owners", "theme_favoriters"],
+  theme_published: ["category_followers"],
+};

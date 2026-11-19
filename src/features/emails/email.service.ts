@@ -1,10 +1,15 @@
 import { AppError } from "@/shared/errors";
 import { env } from "@/shared/config/env";
+import { formatChangeLines } from "@/features/emails/email.format";
+import type { EmailMessage } from "@/features/emails/email.types";
 import { getEmailSender } from "@/features/emails/email.sender";
 import { renderEmail } from "@/features/emails/email.render";
 import { getOrderForEmail } from "@/features/orders/order.service";
 import { OrderConfirmationEmail } from "@/features/emails/templates/OrderConfirmationEmail";
 import { ResetPasswordEmail } from "@/features/emails/templates/ResetPasswordEmail";
+import { AnnouncementEmail } from "@/features/emails/templates/AnnouncementEmail";
+import { NewThemeInCategoryEmail } from "@/features/emails/templates/NewThemeInCategoryEmail";
+import { ThemeUpdateEmail } from "@/features/emails/templates/ThemeUpdateEmail";
 import { VerifyEmail } from "@/features/emails/templates/VerifyEmail";
 import { AdminWalletReviewEmail } from "@/features/emails/templates/AdminWalletReviewEmail";
 import { WalletApprovedEmail } from "@/features/emails/templates/WalletApprovedEmail";
@@ -13,6 +18,7 @@ import { getWalletPaymentEmailData } from "@/features/wallet-payments/wallet-pay
 import { WALLET_MESSAGES } from "@/features/wallet-payments/wallet-payment.constants";
 import type { WalletPaymentEmailData } from "@/features/wallet-payments/wallet-payment.types";
 import { getUserSummary } from "@/features/users/user.service";
+import type { ChangeType } from "@/features/versions/version.constants";
 
 type AuthEmailInput = {
   to: string;
@@ -95,4 +101,103 @@ export async function sendAdminWalletReviewEmail({ walletPaymentId }: WalletEmai
     text,
     templateName: "AdminWalletReviewEmail",
   });
+}
+
+type ChangeInput = { type: ChangeType; text: string };
+
+// Email #7 (docs/09-emails.md section 3.1): a new version of a theme the customer owns. Builds the message only.
+export async function buildThemeUpdateEmail(input: {
+  to: string;
+  name: string;
+  themeName: string;
+  version: string;
+  releasedAt: Date;
+  changes: ChangeInput[];
+}): Promise<EmailMessage> {
+  const { html, text } = await renderEmail(
+    ThemeUpdateEmail({
+      variant: "owner",
+      name: input.name,
+      themeName: input.themeName,
+      version: input.version,
+      releasedAt: input.releasedAt,
+      changeLines: formatChangeLines(input.changes),
+    }),
+  );
+  return {
+    to: input.to,
+    subject: `${input.themeName} ${input.version} is available`,
+    html,
+    text,
+    templateName: "ThemeUpdateEmail",
+  };
+}
+
+// Email #8 (docs/09-emails.md section 3.1): a new version of a theme the customer favorited. Builds the message only.
+export async function buildFavoriteUpdateEmail(input: {
+  to: string;
+  name: string;
+  themeName: string;
+  themeSlug: string;
+  version: string;
+  changes: ChangeInput[];
+}): Promise<EmailMessage> {
+  const { html, text } = await renderEmail(
+    ThemeUpdateEmail({
+      variant: "favorite",
+      name: input.name,
+      themeName: input.themeName,
+      themeSlug: input.themeSlug,
+      version: input.version,
+      changeLines: formatChangeLines(input.changes),
+    }),
+  );
+  return {
+    to: input.to,
+    subject: `${input.themeName} ${input.version} is out`,
+    html,
+    text,
+    templateName: "ThemeUpdateEmail",
+  };
+}
+
+// Email #9 (docs/09-emails.md section 3.1): a new theme in a followed category. Builds the message only.
+export async function buildNewThemeInCategoryEmail(input: {
+  to: string;
+  name: string;
+  categoryName: string;
+  themeName: string;
+  themeSlug: string;
+  tagline: string;
+}): Promise<EmailMessage> {
+  const { html, text } = await renderEmail(
+    NewThemeInCategoryEmail({
+      name: input.name,
+      categoryName: input.categoryName,
+      themeName: input.themeName,
+      themeSlug: input.themeSlug,
+      tagline: input.tagline,
+    }),
+  );
+  return {
+    to: input.to,
+    subject: `New in ${input.categoryName}: ${input.themeName}`,
+    html,
+    text,
+    templateName: "NewThemeInCategoryEmail",
+  };
+}
+
+// Email #10 (docs/09-emails.md section 3.1): an announcement from the admin. Builds the message only.
+export async function buildAnnouncementEmail(input: {
+  to: string;
+  name: string;
+  title: string;
+  body: string;
+  link: string | null;
+}): Promise<EmailMessage> {
+  const { html, text } = await renderEmail(
+    AnnouncementEmail({ name: input.name, title: input.title, body: input.body, link: input.link }),
+  );
+  return { to: input.to, subject: input.title, html, text, templateName: "AnnouncementEmail" };
 }

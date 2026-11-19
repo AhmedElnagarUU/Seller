@@ -1,3 +1,4 @@
+import type { Types } from "mongoose";
 import { connectDB } from "@/shared/db/connect";
 import { parseObjectId, toObjectId } from "@/shared/db/ids";
 import { UserModel, type UserRecord } from "@/features/users/user.model";
@@ -59,4 +60,51 @@ export async function findUserSummariesByIds(
   return UserModel.find({ _id: { $in: objectIds } })
     .select({ name: 1, email: 1, country: 1 })
     .lean<Pick<UserRecord, "_id" | "name" | "email" | "country">[]>();
+}
+
+// The fields that notifications need.
+export type NotificationUserRecord = Pick<
+  UserRecord,
+  | "_id"
+  | "name"
+  | "email"
+  | "disabled"
+  | "emailOwnedThemeUpdates"
+  | "emailFavoriteThemeUpdates"
+  | "emailFollowedCategoryThemes"
+  | "emailAnnouncements"
+>;
+
+// Finds the users with these ids. Invalid and unknown ids are skipped. One query.
+export async function findNotificationUsersByIds(ids: string[]): Promise<NotificationUserRecord[]> {
+  const objectIds = ids.map(parseObjectId).filter((objectId) => objectId !== null);
+  if (objectIds.length === 0) return [];
+  await connectDB();
+  return UserModel.find({ _id: { $in: objectIds } })
+    .select({
+      name: 1,
+      email: 1,
+      disabled: 1,
+      emailOwnedThemeUpdates: 1,
+      emailFavoriteThemeUpdates: 1,
+      emailFollowedCategoryThemes: 1,
+      emailAnnouncements: 1,
+    })
+    .lean<NotificationUserRecord[]>();
+}
+
+// The ids of the next users that are not disabled, `_id` ascending, after `afterId` (all when null).
+export async function findEnabledUserIdsAfter(input: {
+  afterId: string | null;
+  limit: number;
+}): Promise<Pick<UserRecord, "_id">[]> {
+  const afterObjectId = input.afterId === null ? null : parseObjectId(input.afterId);
+  if (input.afterId !== null && !afterObjectId) return [];
+  await connectDB();
+  const filter = { disabled: false, ...(afterObjectId ? { _id: { $gt: afterObjectId } } : {}) };
+  return UserModel.find(filter)
+    .sort({ _id: 1 })
+    .limit(input.limit)
+    .select({ _id: 1 })
+    .lean<{ _id: Types.ObjectId }[]>();
 }

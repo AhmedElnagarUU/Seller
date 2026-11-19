@@ -6,7 +6,9 @@ import {
   getUserNames,
   getUserSummaries,
   getUserSummary,
+  getUsersForNotification,
   isAdminEmail,
+  listCustomerRowsAfter,
   setUserCountry,
 } from "@/features/users/user.service";
 import { createUser } from "@/shared/test/factories";
@@ -120,5 +122,71 @@ describe("getUserSummaries", () => {
       email: "bob@example.com",
       country: null,
     });
+  });
+});
+
+describe("getUsersForNotification", () => {
+  it("returns the four switches and disabled; skips unknown and invalid ids", async () => {
+    const ann = await createUser({ name: "Ann Lee", email: "ann@example.com" });
+    const bob = await createUser({
+      name: "Bob Ray",
+      email: "bob@example.com",
+      disabled: true,
+      emailOwnedThemeUpdates: false,
+      emailFavoriteThemeUpdates: false,
+      emailFollowedCategoryThemes: false,
+      emailAnnouncements: false,
+    });
+
+    const users = await getUsersForNotification([
+      ann._id.toString(),
+      bob._id.toString(),
+      new Types.ObjectId().toString(),
+      "x",
+    ]);
+
+    expect(users).toHaveLength(2);
+    expect(users).toContainEqual({
+      id: ann._id.toString(),
+      name: "Ann Lee",
+      email: "ann@example.com",
+      disabled: false,
+      emailOwnedThemeUpdates: true,
+      emailFavoriteThemeUpdates: true,
+      emailFollowedCategoryThemes: true,
+      emailAnnouncements: true,
+    });
+    expect(users).toContainEqual({
+      id: bob._id.toString(),
+      name: "Bob Ray",
+      email: "bob@example.com",
+      disabled: true,
+      emailOwnedThemeUpdates: false,
+      emailFavoriteThemeUpdates: false,
+      emailFollowedCategoryThemes: false,
+      emailAnnouncements: false,
+    });
+    expect(await getUsersForNotification([])).toEqual([]);
+  });
+});
+
+describe("listCustomerRowsAfter", () => {
+  it("skips disabled users, _id ascending, after the cursor", async () => {
+    const first = await createUser();
+    await createUser({ disabled: true });
+    const second = await createUser();
+    const third = await createUser();
+
+    const all = await listCustomerRowsAfter({ afterId: null, limit: 10 });
+    const afterFirst = await listCustomerRowsAfter({ afterId: first._id.toString(), limit: 10 });
+    const limited = await listCustomerRowsAfter({ afterId: null, limit: 2 });
+
+    expect(all).toEqual([
+      { rowId: first._id.toString(), userId: first._id.toString() },
+      { rowId: second._id.toString(), userId: second._id.toString() },
+      { rowId: third._id.toString(), userId: third._id.toString() },
+    ]);
+    expect(afterFirst.map((row) => row.userId)).toEqual([second._id.toString(), third._id.toString()]);
+    expect(limited.map((row) => row.userId)).toEqual([first._id.toString(), second._id.toString()]);
   });
 });

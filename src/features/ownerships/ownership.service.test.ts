@@ -6,6 +6,7 @@ import {
   grantByAdmin,
   grantFromOrder,
   hasActiveOwnership,
+  listActiveOwnerRowsAfter,
   listOwnedThemes,
   revokeByAdmin,
   revokeForRefund,
@@ -456,5 +457,42 @@ describe("revokeByAdmin", () => {
       code: "NOT_FOUND",
       message: "Customer not found.",
     });
+  });
+});
+
+describe("listActiveOwnerRowsAfter", () => {
+  it("returns only active owners of the theme, _id ascending, after the cursor, at most limit", async () => {
+    const theme = await createTheme({ status: "published" });
+    const otherTheme = await createTheme({ status: "published" });
+    const themeId = theme._id.toString();
+    const first = await createUser();
+    const revoked = await createUser();
+    const second = await createUser();
+    const third = await createUser();
+    const elsewhere = await createUser();
+    const firstRow = await createOwnership(first._id.toString(), themeId);
+    await createOwnership(revoked._id.toString(), themeId, {
+      status: "revoked",
+      revokedAt: EARLIER,
+      revokedReason: "admin",
+      revokedByUserId: new Types.ObjectId(),
+      revokeNote: "Chargeback",
+    });
+    const secondRow = await createOwnership(second._id.toString(), themeId);
+    const thirdRow = await createOwnership(third._id.toString(), themeId);
+    await createOwnership(elsewhere._id.toString(), otherTheme._id.toString());
+
+    const all = await listActiveOwnerRowsAfter({ themeId, afterId: null, limit: 10 });
+    const afterFirst = await listActiveOwnerRowsAfter({ themeId, afterId: firstRow._id.toString(), limit: 10 });
+    const limited = await listActiveOwnerRowsAfter({ themeId, afterId: null, limit: 2 });
+
+    expect(all).toEqual([
+      { rowId: firstRow._id.toString(), userId: first._id.toString() },
+      { rowId: secondRow._id.toString(), userId: second._id.toString() },
+      { rowId: thirdRow._id.toString(), userId: third._id.toString() },
+    ]);
+    expect(afterFirst.map((row) => row.userId)).toEqual([second._id.toString(), third._id.toString()]);
+    expect(limited.map((row) => row.rowId)).toEqual([firstRow._id.toString(), secondRow._id.toString()]);
+    expect(await listActiveOwnerRowsAfter({ themeId: "x", afterId: null, limit: 10 })).toEqual([]);
   });
 });

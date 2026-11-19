@@ -20,6 +20,7 @@ import type { VersionRecord } from "@/features/versions/version.model";
 import * as versionRepository from "@/features/versions/version.repository";
 import type { CreateVersionInput, CreateZipUploadUrlInput } from "@/features/versions/version.schemas";
 import type {
+  ChangeEntryDTO,
   VersionAdminDTO,
   VersionAdminListItemDTO,
   VersionDTO,
@@ -171,4 +172,14 @@ export async function getVersionForAdmin(themeId: string, versionId: string): Pr
 
 export async function countVersionsForTheme(themeId: string): Promise<number> {
   return versionRepository.countVersionsByThemeId(themeId);
+}
+
+// The data that a notification about a version needs. null for an invalid or unknown id.
+export async function getVersionForNotification(
+  versionId: string,
+): Promise<{ version: string; releasedAt: Date; changes: ChangeEntryDTO[] } | null> {
+  const record = await versionRepository.findVersionById(versionId);
+  if (!record) return null;
+  const { version, releasedAt, changes } = toVersionDTO(record);
+  return { version, releasedAt, changes };
 }
