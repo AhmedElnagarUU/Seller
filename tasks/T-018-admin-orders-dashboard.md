@@ -1,5 +1,13 @@
 # T-018: Admin orders, "Mark as refunded" and the dashboard
 
+## Owner decisions (2026-11-19)
+
+These override the matching `[PLANNER ...]` notes below.
+
+- 18-A, 18-B, 18-C: DECIDED — the recommendations as written (UTC periods, inclusive; paid and partially refunded orders count, revenue net of refunds; top 5; default range 30d; the proposed texts).
+- 18-E: DECIDED — the recommended texts.
+- 18-D: technical; the planner writes the exact names before the task starts.
+
 - Depends on: T-017 (and so T-005 … T-016, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 7, 9; `docs/03-data-model.md` sections 7 (orders, status rules), 8, 15, 17, 19 ("Admin marks a wallet order refunded");
   `docs/05-pages.md` section 5 (rows `/admin`, `/admin/orders`, `/admin/orders/[id]`); `docs/06-payments.md` 7.6; `docs/00-product.md` 4.1, 4.4, 3.10;

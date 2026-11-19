@@ -1,5 +1,14 @@
 # T-019: Account overview and settings, info pages, contact, demo preview, sitemap and robots
 
+## Owner decisions (2026-11-19)
+
+These override the matching `[PLANNER ...]` notes below.
+
+- 19-C, 19-E: DECIDED — all recommended texts are confirmed.
+- 19-D: DECIDED — the legal pages (terms, privacy, refund-policy, license) get the text of the matching draft in `docs/legal-drafts/` instead of a placeholder (the owner reviews and completes them before launch); the other info pages get the placeholder paragraph.
+- 19-B: DECIDED — `src/features/content/` as proposed.
+- 19-A, 19-F: technical; the planner settles them before the task starts.
+
 - Depends on: T-018 (and so T-005 … T-017, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 8, 9; `docs/03-data-model.md` section 3 (extra user fields, `account`);
   `docs/05-pages.md` sections 1, 3 (rows `/themes/[slug]/preview`, info pages, `/contact`, "Search rules", "SEO files") and 4 (rows `/account`, `/account/settings`);

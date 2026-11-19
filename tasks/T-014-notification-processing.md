@@ -1,5 +1,12 @@
 # T-014: Notification processing (cron), notification emails, notification center
 
+## Owner decisions (2026-11-19)
+
+These override the matching `[PLANNER ...]` notes below.
+
+- `[PLANNER]` at "09 §5.2 stops the run only for a rate limit": DECIDED — a failed batch also stops the run (retry on the next cron minute), as the tests assume. `docs/09-emails.md` was already changed to say this (commit fc89d3a).
+- `[PLANNER]` at "the docs do not give the texts of the bell and the page buttons": DECIDED — all proposed texts are confirmed, including "Marking…".
+
 - Depends on: T-001 – T-013
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2, 5, 7, 9, 10; `docs/03-data-model.md` sections 11, 12, 13;
   `docs/09-emails.md` **all sections** (1, 2, 3 #7 – #10, 4, 5, 7); `docs/05-pages.md` section 4 (`/account/notifications`, shell menu);

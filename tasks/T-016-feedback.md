@@ -1,5 +1,14 @@
 # T-016: Feedback — customers write to the owner, the owner reads, replies and resolves
 
+## Owner decisions (2026-11-19)
+
+These override the matching `[PLANNER ...]` notes below.
+
+- 16-A: DECIDED — the recommended texts are confirmed.
+- 16-B: DECIDED — `"Feedback not found."`.
+- 16-C: DECIDED — Option A: refuse with `AppError("CONFLICT", "This feedback already has a reply.")`; the reply form is hidden once a reply exists. One reply per message.
+- 16-D, 16-E, 16-F: technical; the planner writes the exact names before the task starts.
+
 - Depends on: T-014 (and so T-005 … T-013, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 9; `docs/03-data-model.md` sections 12 (notifications), 14, 15 (`feedback_sent`);
   `docs/05-pages.md` section 4 (row `/account/feedback`) and section 5 (rows `/admin/feedback`, `/admin/feedback/[id]`, and the AdminShell menu);

@@ -1,5 +1,13 @@
 # T-017: Admin customers (disable, enable, give and remove themes) and announcements
 
+## Owner decisions (2026-11-19)
+
+These override the matching `[PLANNER ...]` notes below.
+
+- 17-A, 17-B, 17-G and the activity summary texts of 17-D: DECIDED — all recommended texts are confirmed.
+- 17-C: DECIDED — the recommendation: the grant note is optional; every theme of any status is in the select, labelled `"<name> (<status label>)"`. Revoking still needs a note.
+- 17-D (function names), 17-E, 17-F: technical; the planner writes the exact names before the task starts.
+
 - Depends on: T-016 (and so T-005 … T-015, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 7, 8, 9; `docs/03-data-model.md` sections 3 (extra user fields, `session`), 8 (ownership rules), 13, 15, 19 ("Admin grants / revokes a theme", "Admin disables an account", "Admin sends an announcement");
   `docs/05-pages.md` section 5 (rows `/admin/customers`, `/admin/customers/[id]`, `/admin/notifications`, `/admin/notifications/new`);

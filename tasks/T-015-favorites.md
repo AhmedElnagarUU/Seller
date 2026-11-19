@@ -1,5 +1,13 @@
 # T-015: Favorites and follows — favorite themes, followed categories
 
+## Owner decisions (2026-11-19)
+
+These override the matching `[PLANNER ...]` notes below.
+
+- 15-A: DECIDED — theme → `"This theme is not available."`, category → `"Category not found."`.
+- 15-B: DECIDED — the recommendation: `unfavorite` = `"Remove from favorites"`, `unfollow` = `"Unfollow category"`; a logged-out visitor sees `♥ Favorite` / `Follow category` as a `ButtonLink` to `/login?next=<encoded page path>`.
+- 15-C: still open; the planner settles it after T-014 is merged.
+
 - Depends on: T-014 (and so T-005 … T-013, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 9; `docs/03-data-model.md` sections 4 (delete rule), 11, 13 (stages);
   `docs/05-pages.md` section 3 (rows `/categories/[slug]`, `/themes/[slug]`) and section 4 (row `/account/favorites`);
