@@ -17,6 +17,37 @@ export async function setUserCountry(id: string, country: string): Promise<void>
   await UserModel.updateOne({ _id: toObjectId(id) }, { $set: { country } });
 }
 
+// The four email switches of a user.
+export type EmailPreferences = Pick<
+  UserRecord,
+  "emailOwnedThemeUpdates" | "emailFavoriteThemeUpdates" | "emailFollowedCategoryThemes" | "emailAnnouncements"
+>;
+
+// Saves the four email switches. Only our extra fields are written, never the Better Auth core fields.
+export async function setEmailPreferences(id: string, preferences: EmailPreferences): Promise<void> {
+  await connectDB();
+  await UserModel.updateOne(
+    { _id: toObjectId(id) },
+    {
+      $set: {
+        emailOwnedThemeUpdates: preferences.emailOwnedThemeUpdates,
+        emailFavoriteThemeUpdates: preferences.emailFavoriteThemeUpdates,
+        emailFollowedCategoryThemes: preferences.emailFollowedCategoryThemes,
+        emailAnnouncements: preferences.emailAnnouncements,
+      },
+    },
+  );
+}
+
+// True when the user has a password login. `account` is Better Auth's collection: `userId` is an ObjectId there.
+export async function hasCredentialAccount(id: string): Promise<boolean> {
+  await connectDB();
+  const count = await mongoose.connection
+    .collection("account")
+    .countDocuments({ userId: toObjectId(id), providerId: "credential" });
+  return count > 0;
+}
+
 // True when the user exists and is disabled.
 export async function isUserDisabledById(id: string): Promise<boolean> {
   await connectDB();

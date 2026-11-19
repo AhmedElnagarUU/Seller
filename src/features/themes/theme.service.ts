@@ -266,6 +266,17 @@ async function findHomeSection(sort: ThemeSort, extraQuery: ThemeQuery): Promise
   return toCards(themes);
 }
 
+// The best-selling published themes: most sales first, then newest published (D-114).
+export async function listBestSellingThemes(limit: number): Promise<ThemeCardDTO[]> {
+  const themes = await themeRepository.findThemes({ status: "published" }, "best", 1, limit);
+  return toCards(themes);
+}
+
+// The slugs of all published themes, newest published first.
+export async function listPublishedThemeSlugs(): Promise<string[]> {
+  return themeRepository.findPublishedThemeSlugs();
+}
+
 // Everything the home page shows: up to 6 themes in each section and the categories.
 export async function getHomePageData(): Promise<HomePageDataDTO> {
   const [featured, bestSellers, newest, categories] = await Promise.all([

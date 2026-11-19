@@ -14,4 +14,5 @@ export const AUTH_MESSAGES = {
   invalidPassword: "Use 8 to 128 characters.",
   passwordsDiffer: "The passwords do not match.",
   invalidCountry: "Please choose your country.",
+  wrongCurrentPassword: "Your current password is wrong.",
 } as const;

@@ -86,3 +86,37 @@ export async function resendVerificationEmail(email: string, headers: Headers): 
     throw new AppError("INVALID", AUTH_MESSAGES.generic);
   }
 }
+
+// Changes the name of the logged-in user (the one in the session of `headers`).
+export async function updateUserName(name: string, headers: Headers): Promise<void> {
+  try {
+    await auth.api.updateUser({ body: { name }, headers });
+  } catch (error) {
+    console.error("updateUserName failed", error);
+    throw new AppError("INVALID", AUTH_MESSAGES.generic);
+  }
+}
+
+// Changes the password of the logged-in user. The other sessions are ended, the current one stays.
+export async function changeUserPassword(
+  input: { currentPassword: string; newPassword: string },
+  headers: Headers,
+): Promise<void> {
+  try {
+    // `revokeOtherSessions: true` of changePassword would also replace the current session cookie, and the page
+    // that Next renders after the action then reads the old cookie (see docs/QUESTIONS.md Q-025).
+    // So the other sessions are ended in a second call, which leaves the current session and its cookie as they are.
+    await auth.api.changePassword({
+      body: { currentPassword: input.currentPassword, newPassword: input.newPassword },
+      headers,
+    });
+    await auth.api.revokeOtherSessions({ headers });
+  } catch (error) {
+    if (readErrorCode(error).includes("INVALID_PASSWORD")) {
+      throw new AppError("INVALID", AUTH_MESSAGES.wrongCurrentPassword);
+    }
+    if (hasStatusCode(error, 429)) throw new AppError("RATE_LIMITED", AUTH_MESSAGES.tooManyAttempts);
+    console.error("changeUserPassword failed", error);
+    throw new AppError("INVALID", AUTH_MESSAGES.generic);
+  }
+}

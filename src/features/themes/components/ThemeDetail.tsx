@@ -3,7 +3,6 @@ import { Inline } from "@/shared/layout/Inline";
 import { Stack } from "@/shared/layout/Stack";
 import { formatDate } from "@/shared/lib/dates";
 import { formatPrice } from "@/shared/lib/money";
-import { ButtonAnchor } from "@/shared/ui/ButtonAnchor";
 import { ButtonLink } from "@/shared/ui/ButtonLink";
 import { Heading } from "@/shared/ui/Heading";
 import { MarkdownText } from "@/shared/ui/MarkdownText";
@@ -51,9 +50,9 @@ export function ThemeDetail({ theme, isLoggedIn, isFavorite }: ThemeDetailProps)
           <Inline wrap>
             <ButtonLink href={`/checkout/${theme.slug}`}>Buy now</ButtonLink>
             {theme.demoUrl ? (
-              <ButtonAnchor href={theme.demoUrl} variant="secondary" rel="noopener noreferrer">
+              <ButtonLink href={`/themes/${theme.slug}/preview`} variant="secondary">
                 Live demo
-              </ButtonAnchor>
+              </ButtonLink>
             ) : null}
             <FavoriteButton themeId={theme.id} themeSlug={theme.slug} isFavorite={isFavorite} isLoggedIn={isLoggedIn} />
           </Inline>

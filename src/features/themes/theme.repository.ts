@@ -93,6 +93,16 @@ export async function findThemeBySlug(slug: string): Promise<ThemeRecord | null>
   return ThemeModel.findOne({ slug }).lean<ThemeRecord>();
 }
 
+// The slugs of all published themes, newest published first.
+export async function findPublishedThemeSlugs(): Promise<string[]> {
+  await connectDB();
+  const themes = await ThemeModel.find({ status: "published" })
+    .sort(SORTS.newest)
+    .select({ slug: 1 })
+    .lean<Pick<ThemeRecord, "slug">[]>();
+  return themes.map((theme) => theme.slug);
+}
+
 // Finds one page of themes. Pages are numbered from 1.
 export async function findThemes(
   query: ThemeQuery,

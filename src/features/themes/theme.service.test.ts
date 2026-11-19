@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { describe, expect, it, vi } from "vitest";
-import { ThemeModel } from "@/features/themes/theme.model";
+import { ThemeModel, type ThemeRecord } from "@/features/themes/theme.model";
 import {
   adjustSalesCount,
   createTheme,
@@ -12,7 +12,9 @@ import {
   getThemeForPurchase,
   getThemeForPurchaseById,
   incrementDownloadCount,
+  listBestSellingThemes,
   listPublishedThemeCardsByIds,
+  listPublishedThemeSlugs,
   listPublishedThemes,
   listThemeOptionsForAdmin,
   listThemeSummariesByIds,
@@ -646,5 +648,29 @@ describe("listThemeOptionsForAdmin", () => {
       { id: unpublished._id.toString(), name: "Bravo", status: "unpublished" },
       { id: draft._id.toString(), name: "Charlie", status: "draft" },
     ]);
+  });
+});
+
+describe("listBestSellingThemes", () => {
+  it("returns published themes by sales and respects the limit", async () => {
+    const themes: ThemeRecord[] = [];
+    for (let sales = 1; sales <= 5; sales += 1) {
+      themes.push(await createThemeRow({ status: "published", stats: { salesCount: sales, downloadCount: 0 } }));
+    }
+    await createThemeRow({ status: "draft", stats: { salesCount: 99, downloadCount: 0 } });
+
+    const cards = await listBestSellingThemes(4);
+
+    expect(cards.map((card) => card.id)).toEqual([4, 3, 2, 1].map((position) => themes[position]?._id.toString()));
+  });
+});
+
+describe("listPublishedThemeSlugs", () => {
+  it("returns only published slugs", async () => {
+    const published = await createThemeRow({ status: "published", slug: "published-one" });
+    await createThemeRow({ status: "draft", slug: "draft-one" });
+    await createThemeRow({ status: "unpublished", slug: "unpublished-one" });
+
+    expect(await listPublishedThemeSlugs()).toEqual([published.slug]);
   });
 });

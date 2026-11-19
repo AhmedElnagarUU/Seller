@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { ActivityLogModel } from "@/features/activity/activity-log.model";
-import { loginUser, registerUser, requestPasswordReset, resetPassword } from "@/features/auth/auth.service";
+import { auth } from "@/features/auth/auth";
+import {
+  changeUserPassword,
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  resetPassword,
+  updateUserName,
+} from "@/features/auth/auth.service";
 import { UserModel } from "@/features/users/user.model";
 import { fakeEmailSender } from "@/shared/test/fakes/fake-email-sender";
+import { createSessionHeaders } from "@/shared/test/session-headers";
 
 const REGISTER_INPUT = { name: "Ann Lee", email: "ann@example.com", password: "password123", country: "EG" };
 
@@ -125,5 +134,47 @@ describe("resetPassword", () => {
       code: "INVALID",
       message: "This reset link is invalid or has expired. Please ask for a new one.",
     });
+  });
+});
+
+describe("updateUserName", () => {
+  it("changes the name through Better Auth", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+    const headers = await createSessionHeaders("ann@example.com", "password123");
+
+    await updateUserName("New Name", headers);
+
+    const user = await UserModel.findOne({ email: "ann@example.com" }).lean();
+    expect(user?.name).toBe("New Name");
+    expect(user?.email).toBe("ann@example.com");
+  });
+});
+
+describe("changeUserPassword", () => {
+  it("changes the password and revokes the other sessions", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+    const user = await UserModel.findOne({ email: "ann@example.com" }).lean();
+    const firstHeaders = await createSessionHeaders("ann@example.com", "password123");
+    const secondHeaders = await createSessionHeaders("ann@example.com", "password123");
+    await changeUserPassword({ currentPassword: "password123", newPassword: "new-password-456" }, firstHeaders);
+
+    expect(await sessionCollection().countDocuments({ userId: user?._id })).toBe(1);
+    expect(await auth.api.getSession({ headers: secondHeaders })).toBeNull();
+    await loginUser({ email: "ann@example.com", password: "new-password-456" }, new Headers());
+    expect(await sessionCollection().countDocuments({ userId: user?._id })).toBe(2);
+    await expect(loginUser({ email: "ann@example.com", password: "password123" }, new Headers())).rejects.toMatchObject(
+      { code: "INVALID", message: "Wrong email or password." },
+    );
+  });
+
+  it("refuses a wrong current password", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+    const headers = await createSessionHeaders("ann@example.com", "password123");
+
+    await expect(
+      changeUserPassword({ currentPassword: "not-my-password", newPassword: "new-password-456" }, headers),
+    ).rejects.toMatchObject({ code: "INVALID", message: "Your current password is wrong." });
+
+    await loginUser({ email: "ann@example.com", password: "password123" }, new Headers());
   });
 });
