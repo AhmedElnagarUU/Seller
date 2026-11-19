@@ -7,7 +7,12 @@ These override the matching `[PLANNER ...]` notes below.
 - 19-C, 19-E: DECIDED — all recommended texts are confirmed.
 - 19-D: DECIDED — the legal pages (terms, privacy, refund-policy, license) get the text of the matching draft in `docs/legal-drafts/` instead of a placeholder (the owner reviews and completes them before launch); the other info pages get the placeholder paragraph.
 - 19-B: DECIDED — `src/features/content/` as proposed.
-- 19-A, 19-F: technical; the planner settles them before the task starts.
+- 19-A: DECIDED — the recommendation (`FullScreenFrame` covers the store header/footer on the preview page; the known accessibility limit is accepted for the MVP). Do not move pages into a route group.
+- 19-F: DECIDED — functions of earlier tasks (all exist):
+  - `listNotifications(userId: string, page: number): Promise<NotificationPageDTO>` and `countUnreadNotifications(userId: string): Promise<number>` in `src/features/notifications/notification.service.ts` (`NotificationPageDTO` / `NotificationDTO` in `notification.types.ts`); the overview takes `listNotifications(userId, 1).items.slice(0, 5)`.
+  - `listWalletPaymentsForUser(userId: string): Promise<WalletPaymentListItemDTO[]>` in `src/features/wallet-payments/wallet-payment.service.ts` (only `status` is used).
+  - `countActiveOwnershipsByUser(userIds: string[]): Promise<Map<string, number>>` in `src/features/ownerships/ownership.service.ts`.
+  - The root layout `src/app/layout.tsx` already renders the notification bell (T-014); keep it.
 
 - Depends on: T-018 (and so T-005 … T-017, all merged into `main`)
 - Read first: `AGENTS.md`; `docs/02-architecture.md` sections 2.3, 5, 8, 9; `docs/03-data-model.md` section 3 (extra user fields, `account`);
@@ -140,14 +145,14 @@ export type AccountOverviewDTO = {
 
 ```ts
 export const ACCOUNT_MESSAGES = {
-  saved: "[PLANNER 19-C]",                      // recommended "Saved." (same word as T-004)
+  saved: "Saved.",                      // recommended "Saved." (same word as T-004)
   passwordChanged: "Your password was changed.", // 05 §4, word for word
   passwordFormSubmit: "Change password",
   emailNotificationsTitle: "Email notifications",
   deleteAccount: "To delete your account, email",   // followed by the support email and "."
 } as const;
 ```
-`auth.messages.ts` gets `wrongCurrentPassword: "[PLANNER 19-C]"` (recommended `"Your current password is wrong."`).
+`auth.messages.ts` gets `wrongCurrentPassword: "Your current password is wrong."` (recommended `"Your current password is wrong."`).
 
 **[PLANNER 19-C]** Texts the docs do not give: success text of the profile form and of the e-mail switches (recommended `"Saved."`), the error when the current password is wrong (recommended `"Your current password is wrong."`, also used by the schema for an empty current password), the submit text of the profile form (recommended `"Save changes"`; the password form uses `"Change password"`, the e-mail form `"Save"` as in 05 §4).
 
