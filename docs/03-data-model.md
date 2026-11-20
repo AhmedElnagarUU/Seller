@@ -702,3 +702,22 @@ Each list runs in **one MongoDB transaction** unless marked _(no transaction)_.
 
 1. Check an `active` ownership for (user, theme). 2. Check the rate limit with `downloadLogs`.
 2. Insert `downloadLogs`; `themes.stats.downloadCount += 1`. 4. Return a signed URL.
+
+---
+
+## 20. `authAttempts` — `AuthAttemptModel` (D-150, T-021)
+
+One failed login or one sent auth email, kept only to enforce the limits of D-150.
+
+| Field       | Type   | Required | Rules                                         |
+| ----------- | ------ | -------- | --------------------------------------------- |
+| `kind`      | enum   | yes      | `"login_failed" \| "auth_email"`.             |
+| `email`     | string | yes      | Trimmed, lowercased.                          |
+| `ip`        | string | yes      | Client IP, or `"unknown"`.                    |
+| `createdAt` | Date   | yes      | Timestamp (no `updatedAt`).                   |
+
+**Indexes**
+
+- `{ kind: 1, email: 1, ip: 1, createdAt: -1 }`
+- `{ kind: 1, ip: 1, createdAt: -1 }`
+- `{ createdAt: 1 }` with `expireAfterSeconds: 86400` (deleted after 1 day)

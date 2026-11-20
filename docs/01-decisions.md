@@ -159,6 +159,7 @@ When a decision changes, do not delete it. Mark it `REPLACED by D-xxx` and add a
 | D-147 | On server start the app creates missing collections and syncs indexes (`ensureDatabase`). | DEFAULT |
 | D-148 | `downloadLogs` rows are deleted after 1 year (TTL index). | DEFAULT |
 | D-149 | Wallet proof screenshots are deleted by an R2 lifecycle rule on the `wallet-proofs/` prefix after 365 days. The wallet payment record stays. | DEFAULT |
+| D-150 | Our own limits on auth (security fix before launch, T-021): 5 failed logins per email + IP and 50 per IP in 15 minutes; 3 password-reset / verification emails per address per hour. Better Auth's router limits do not cover our server actions. The client IP comes from `cf-connecting-ip`, then `x-forwarded-for`. | DEFAULT |
 
 ## Demos
 
