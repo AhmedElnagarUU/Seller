@@ -67,5 +67,6 @@ export const auth = betterAuth({
       },
     },
   },
+  advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] } },
   plugins: [nextCookies()], // must be last
 });

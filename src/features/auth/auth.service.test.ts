@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { ActivityLogModel } from "@/features/activity/activity-log.model";
 import { auth } from "@/features/auth/auth";
+import { AuthAttemptModel } from "@/features/auth/auth-attempt.model";
 import {
   changeUserPassword,
   loginUser,
   registerUser,
   requestPasswordReset,
+  resendVerificationEmail,
   resetPassword,
   updateUserName,
 } from "@/features/auth/auth.service";
@@ -176,5 +178,72 @@ describe("changeUserPassword", () => {
     ).rejects.toMatchObject({ code: "INVALID", message: "Your current password is wrong." });
 
     await loginUser({ email: "ann@example.com", password: "password123" }, new Headers());
+  });
+});
+
+describe("loginUser", () => {
+  it("records a failed login and refuses the 6th try with the right password", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+    await sessionCollection().deleteMany({});
+    const headers = new Headers({ "cf-connecting-ip": "9.9.9.9" });
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await expect(loginUser({ email: "ann@example.com", password: "wrong-password" }, headers)).rejects.toMatchObject({
+        code: "INVALID",
+        message: "Wrong email or password.",
+      });
+    }
+
+    await expect(loginUser({ email: "ann@example.com", password: "password123" }, headers)).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      message: "Too many attempts. Please wait a minute and try again.",
+    });
+    const rows = await AuthAttemptModel.find({ kind: "login_failed" }).lean();
+    expect(rows).toHaveLength(5);
+    expect(rows[0]?.email).toBe("ann@example.com");
+    expect(rows[0]?.ip).toBe("9.9.9.9");
+    expect(await sessionCollection().countDocuments()).toBe(0);
+  });
+
+  it("a successful login records nothing", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+
+    await loginUser({ email: "ann@example.com", password: "password123" }, new Headers());
+
+    expect(await AuthAttemptModel.countDocuments()).toBe(0);
+  });
+});
+
+describe("requestPasswordReset", () => {
+  it("sends at most 3 reset emails per hour for one address and stays silent after that", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+    fakeEmailSender.reset();
+
+    for (let call = 0; call < 4; call += 1) {
+      await expect(requestPasswordReset("ann@example.com", new Headers())).resolves.toBeUndefined();
+    }
+
+    const resetEmails = fakeEmailSender.sent.filter((email) => email.templateName === "ResetPasswordEmail");
+    expect(resetEmails).toHaveLength(3);
+    expect(fakeEmailSender.sent).toHaveLength(3);
+    expect(await AuthAttemptModel.countDocuments({ kind: "auth_email" })).toBe(3);
+  });
+});
+
+describe("resendVerificationEmail", () => {
+  it("refuses the 4th within an hour with RATE_LIMITED", async () => {
+    await registerUser(REGISTER_INPUT, new Headers());
+    fakeEmailSender.reset();
+
+    for (let call = 0; call < 3; call += 1) {
+      await resendVerificationEmail("ann@example.com", new Headers());
+    }
+
+    await expect(resendVerificationEmail("ann@example.com", new Headers())).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      message: "Too many attempts. Please wait a minute and try again.",
+    });
+    expect(fakeEmailSender.sent).toHaveLength(3);
+    expect(await AuthAttemptModel.countDocuments({ kind: "auth_email" })).toBe(3);
   });
 });

@@ -2,6 +2,13 @@ import { isAPIError } from "better-auth/api";
 import { AppError } from "@/shared/errors";
 import { AUTH_MESSAGES } from "@/features/auth/auth.messages";
 import { auth } from "@/features/auth/auth";
+import {
+  assertAuthEmailAllowed,
+  assertLoginAllowed,
+  recordAuthEmail,
+  recordFailedLogin,
+} from "@/features/auth/auth-limit.service";
+import { readClientIp } from "@/features/auth/client-ip";
 import type { LoginInput, RegisterInput } from "@/features/auth/auth.schemas";
 import { setUserCountry } from "@/features/users/user.service";
 
@@ -36,13 +43,18 @@ export async function registerUser(input: RegisterInput, headers: Headers): Prom
 
 // Logs the user in and creates a session. Disabled users are refused by the Better Auth session hook.
 export async function loginUser(input: LoginInput, headers: Headers): Promise<void> {
+  const ip = readClientIp(headers);
+  await assertLoginAllowed({ email: input.email, ip });
   try {
     await auth.api.signInEmail({ body: { email: input.email, password: input.password }, headers });
   } catch (error) {
     if (isAPIError(error) && error.message.includes("ACCOUNT_DISABLED")) {
       throw new AppError("FORBIDDEN", AUTH_MESSAGES.disabled);
     }
-    if (hasStatusCode(error, 401)) throw new AppError("INVALID", AUTH_MESSAGES.wrongCredentials);
+    if (hasStatusCode(error, 401)) {
+      await recordFailedLogin({ email: input.email, ip });
+      throw new AppError("INVALID", AUTH_MESSAGES.wrongCredentials);
+    }
     if (hasStatusCode(error, 429)) throw new AppError("RATE_LIMITED", AUTH_MESSAGES.tooManyAttempts);
     console.error("loginUser failed", error);
     throw new AppError("INVALID", AUTH_MESSAGES.generic);
@@ -58,8 +70,17 @@ export async function logoutUser(headers: Headers): Promise<void> {
   }
 }
 
-// Sends a reset email when the address is known. Always resolves: it never tells if the email exists.
+// Sends a reset email when the address is known. Always resolves: it never tells if the email exists,
+// and it stays silent (sends nothing) when the address asked too often (D-150).
 export async function requestPasswordReset(email: string, headers: Headers): Promise<void> {
+  const attempt = { email, ip: readClientIp(headers) };
+  try {
+    await assertAuthEmailAllowed(attempt);
+  } catch (error) {
+    if (error instanceof AppError && error.code === "RATE_LIMITED") return;
+    throw error;
+  }
+  await recordAuthEmail(attempt);
   try {
     await auth.api.requestPasswordReset({ body: { email, redirectTo: "/reset-password" }, headers });
   } catch (error) {
@@ -78,6 +99,9 @@ export async function resetPassword(token: string, newPassword: string, headers:
 
 // Sends the verification email again.
 export async function resendVerificationEmail(email: string, headers: Headers): Promise<void> {
+  const attempt = { email, ip: readClientIp(headers) };
+  await assertAuthEmailAllowed(attempt);
+  await recordAuthEmail(attempt);
   try {
     await auth.api.sendVerificationEmail({ body: { email, callbackURL: "/account" }, headers });
   } catch (error) {

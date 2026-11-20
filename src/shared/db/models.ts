@@ -1,4 +1,5 @@
 import { ActivityLogModel } from "@/features/activity/activity-log.model";
+import { AuthAttemptModel } from "@/features/auth/auth-attempt.model";
 import { CategoryModel } from "@/features/categories/category.model";
 import { CouponModel } from "@/features/coupons/coupon.model";
 import { DownloadLogModel } from "@/features/downloads/download-log.model";
@@ -25,6 +26,7 @@ type ModelToBuild = {
 // Ordered by file path.
 export const ALL_MODELS: ModelToBuild[] = [
   ActivityLogModel,
+  AuthAttemptModel,
   CategoryModel,
   CouponModel,
   DownloadLogModel,
