@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { expect, test, type Page } from "@playwright/test";
 import { CategoryModel } from "@/features/categories/category.model";
 import { ThemeModel } from "@/features/themes/theme.model";
+import { markEmailVerified } from "./helpers";
 
 const ADMIN_EMAIL = "admin@example.com";
 const PASSWORD = "password123";
@@ -22,6 +23,8 @@ async function registerAs(page: Page, email: string): Promise<void> {
   await page.getByLabel("Country").selectOption("EG");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Confirm your email" })).toBeVisible();
+  // The admin needs a verified email (D-152); there is no inbox in e2e, so it is marked in the database.
+  if (email === ADMIN_EMAIL) await markEmailVerified(email);
 }
 
 // A fresh admin account for every run: the old one (with its login data) is removed first.
