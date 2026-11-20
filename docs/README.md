@@ -18,6 +18,7 @@ Code must follow them. If code and docs disagree, the docs win (or the docs get 
 | `10-testing.md` | Testing rules, fakes, required tests, E2E flows, CI | Draft — under review |
 | `11-deployment.md` | VPS setup, deploys, cron, backups, monitoring, launch checklist | Draft — under review |
 | `QUESTIONS.md` | Questions raised by agents while implementing | Living file |
+| `DECISION-JOURNAL.md` | Why the product is built this way: main choices, reasons, trade-offs, what changed while building | Living file |
 | `LAUNCH.md` | Owner's step-by-step launch guide (accounts, server, content, tests, go live) | Ready |
 
 Task files live in `/tasks`. They are written after the docs above are approved.
