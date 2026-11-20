@@ -88,6 +88,10 @@ On the server: `cd /srv/themestore/src && ./deploy/deploy.sh staging <main branc
 In Polar's **sandbox** dashboard, add the webhook endpoint `https://staging.<domain>/api/webhooks/polar` with the
 events of `docs/06-payments.md` §6, and put its secret into `staging.env` (deploy again after changing the file).
 
+**First, your admin account:** register on `https://staging.<domain>` with the email you put in `ADMIN_EMAILS` and click the
+link in the verification email (or sign in with Google using that address). The admin panel opens only for a **verified**
+admin email (D-152), so this also proves that Resend works.
+
 Then check on `https://staging.<domain>`, logged in with your admin email:
 
 - [ ] Create a category and a theme; upload images and a version zip; sync with Polar; publish it.
