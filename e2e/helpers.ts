@@ -26,6 +26,16 @@ export async function registerAs(page: Page, email: string, country: string = "E
   await page.getByLabel("Country").selectOption(country);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Confirm your email" })).toBeVisible();
+  if (email === ADMIN_EMAIL) await markAdminVerified();
+}
+
+// The admin needs a verified email (isAdminUser). E2E has no inbox, so the test marks the admin verified in the database.
+// Opens a connection for this when the spec has none.
+async function markAdminVerified(): Promise<void> {
+  const wasConnected = mongoose.connection.readyState === mongoose.ConnectionStates.connected;
+  if (!wasConnected) await mongoose.connect(readMongoUri());
+  await markEmailVerified(ADMIN_EMAIL);
+  if (!wasConnected) await mongoose.disconnect();
 }
 
 // A fresh admin account for every run: the old one (with its login data) is removed first.

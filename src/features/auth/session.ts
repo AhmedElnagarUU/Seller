@@ -2,7 +2,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/features/auth/auth";
-import { isAdminEmail } from "@/features/users/user.service";
+import { isAdminUser } from "@/features/users/user.service";
 import type { CurrentUser } from "@/features/users/user.types";
 
 // The logged-in user, or null. A disabled user counts as not logged in (extra safety on top of the hook, D-121).
@@ -16,7 +16,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,
-    isAdmin: isAdminEmail(user.email),
+    isAdmin: isAdminUser({ email: user.email, emailVerified: user.emailVerified }),
     country: user.country ?? null,
   };
 });

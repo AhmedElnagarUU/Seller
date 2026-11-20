@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env";
+import { securityHeaders } from "./src/shared/config/security-headers";
 
 const imagesBaseUrl = new URL(env.PUBLIC_IMAGES_BASE_URL);
 const imagesPath = imagesBaseUrl.pathname.replace(/\/$/, "");
@@ -9,6 +10,10 @@ const allowsLocalImages = env.APP_ENV === "local" || env.APP_ENV === "ci";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders(env.APP_ENV) }];
+  },
   images: {
     dangerouslyAllowLocalIP: allowsLocalImages,
     remotePatterns: [

@@ -28,6 +28,12 @@ export function isAdminEmail(email: string): boolean {
   return env.ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
 
+// True for an admin account: a verified email that is in ADMIN_EMAILS. Without the verification, anyone who registered
+// with the admin address before the owner did would get the admin panel.
+export function isAdminUser(user: { email: string; emailVerified: boolean }): boolean {
+  return user.emailVerified && isAdminEmail(user.email);
+}
+
 // Finds the id of the user with this email (ignoring case and spaces around it), or null.
 export async function getUserIdByEmail(email: string): Promise<string | null> {
   const user = await userRepository.findUserByEmail(email.trim().toLowerCase());

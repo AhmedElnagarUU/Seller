@@ -13,6 +13,7 @@ import {
   getUserSummary,
   getUsersForNotification,
   isAdminEmail,
+  isAdminUser,
   listCustomerRowsAfter,
   listCustomers,
   setUserCountry,
@@ -417,5 +418,14 @@ describe("enableUser", () => {
     });
 
     expect(await ActivityLogModel.countDocuments()).toBe(0);
+  });
+});
+
+describe("isAdminUser", () => {
+  it("needs a verified email that is in ADMIN_EMAILS", () => {
+    expect(isAdminUser({ email: "admin@example.com", emailVerified: true })).toBe(true);
+    expect(isAdminUser({ email: " Admin@Example.com ", emailVerified: true })).toBe(true);
+    expect(isAdminUser({ email: "admin@example.com", emailVerified: false })).toBe(false);
+    expect(isAdminUser({ email: "other@example.com", emailVerified: true })).toBe(false);
   });
 });
