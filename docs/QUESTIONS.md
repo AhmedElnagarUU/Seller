@@ -32,8 +32,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: The task says tags are "pinned in T-001" but gives none. I used `mongo:8.0.4` (verified, works). For `minio/minio:RELEASE.2025-04-22T22-12-26Z` and `minio/mc:RELEASE.2025-04-16T18-13-26Z` I could not verify the tags (Docker Hub pull was denied in my sandbox; MinIO may have stopped publishing images there).
 - Options I see: A) keep these tags. B) owner names tags or another registry for MinIO.
-- Status: OPEN (planner checks on first CI run)
-- Answer: Keep mongo:8.0.4 and the MinIO tags for now. GitHub CI will show whether the MinIO images pull; if not, the planner picks another image.
+- Status: ANSWERED (planner checks on first CI run)
+- Answer (planner, 2026-11-19): mongo `8.0.4` stays; for MinIO see Q-011: the first GitHub Actions run (run 44632402411) failed the same way: `pull access denied for minio/mc`. MinIO is replaced in `docker-compose.yml` by `motoserver/moto:5.2.5` on port 9000, which creates both buckets on start (`docs/07-delivery-updates.md` §10). `docker compose up -d --wait` and the full e2e suite (58/58) pass with it.
 - Doc updated: —
 
 ### Q-003: MONGODB_URI in vitest `test.env`
@@ -112,8 +112,8 @@ The owner or planner answers it, updates the relevant doc, then marks it answere
 - Asked by: Claude (implementing agent)
 - Question: `docker pull minio/minio:RELEASE.2025-04-22T22-12-26Z` and `minio/mc:RELEASE.2025-04-16T18-13-26Z` both answer "pull access denied ... repository does not exist or may require 'docker login'" in my sandbox (the `mongo:8.0.4` image pulls fine from the same registry). It may be only my sandbox. I ran `e2e/theme-images.spec.ts` against another local S3-compatible server on port 9000 with the same two buckets, and all 4 tests passed. Please run `docker compose up -d` and `pnpm e2e` once on a normal machine or in CI to confirm against real MinIO.
 - Options I see: A) the tags pull fine elsewhere: nothing to do. B) they do not: pin other MinIO images in `docker-compose.yml`.
-- Status: OPEN
-- Answer:
+- Status: ANSWERED
+- Answer (planner, 2026-11-19): the first GitHub Actions run (run 44632402411) failed the same way: `pull access denied for minio/mc`. MinIO is replaced in `docker-compose.yml` by `motoserver/moto:5.2.5` on port 9000, which creates both buckets on start (`docs/07-delivery-updates.md` §10). `docker compose up -d --wait` and the full e2e suite (58/58) pass with it.
 - Doc updated:
 
 ### Q-012: `auth.service.test.ts` fails about 1 run in 5 (not caused by T-007)

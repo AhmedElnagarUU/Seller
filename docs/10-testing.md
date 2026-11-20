@@ -164,7 +164,7 @@ File `.github/workflows/ci.yml`, runs on every Pull Request and on pushes to `ma
 5. No focused/skipped tests   (fails on .only / .skip / .todo in test files)
 6. Tests            pnpm test:coverage
 7. Build            pnpm build
-8. E2E              start MongoDB + MinIO, pnpm e2e
+8. E2E              start MongoDB + the S3 stand-in (docker compose up -d --wait), pnpm e2e
 ```
 
 - The owner turns on **branch protection** for `main` in GitHub: "Require status checks to pass before merging".

@@ -60,6 +60,7 @@ test.describe("e2e account", () => {
     await expect(page.getByText("Your password was changed.")).toBeVisible();
 
     await page.getByRole("button", { name: "Log out" }).click();
+    await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
     await page.goto("/login");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill(NEW_PASSWORD);

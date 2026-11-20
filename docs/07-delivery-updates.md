@@ -513,28 +513,13 @@ Do this once for **production**. For **staging**, repeat it with the bucket name
 
 ---
 
-## 10. Local development, E2E and CI (MinIO)
+## 10. Local development, E2E and CI (S3 stand-in)
 
-`docker-compose.yml` has these two services, next to MongoDB. T-001 pins the image tags.
-
-```yaml
-  minio:
-    image: minio/minio:<pinned in T-001>
-    command: server /data --console-address ":9001"
-    ports: ["9000:9000", "9001:9001"]
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes: ["minio-data:/data"]
-  minio-init:
-    image: minio/mc:<pinned in T-001>
-    depends_on: [minio]
-    entrypoint: >
-      /bin/sh -c "until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
-      mc mb --ignore-existing local/store-files;
-      mc mb --ignore-existing local/store-images;
-      mc anonymous set download local/store-images"
-```
+Changed on 2026-11-19 (Q-011): the MinIO images can no longer be pulled from Docker Hub (also on GitHub Actions), so
+`docker-compose.yml` runs **moto** (`motoserver/moto`, pinned), an S3-compatible test server, on port 9000. It creates
+the buckets `store-files` and `store-images` on start; its health check waits for them, so `docker compose up -d --wait`
+(CI) returns only when they exist. It does not check signatures, sizes or permissions the way R2 does — real uploads
+and downloads are checked on **staging** with R2 (`LAUNCH.md` step 6). Production and staging always use R2.
 
 `.env.example` local values:
 
@@ -549,8 +534,7 @@ S3_PUBLIC_BUCKET=store-images
 PUBLIC_IMAGES_BASE_URL=http://localhost:9000/store-images
 ```
 
-MinIO accepts browser uploads from any origin by default, so it needs no CORS setup. The MinIO console runs at
-`http://localhost:9001`.
+The stand-in accepts browser uploads from any origin, so it needs no CORS setup.
 
 `S3_ENDPOINT` is **required** in `env.ts` (a non-empty URL), because both R2 and MinIO need it.
 
